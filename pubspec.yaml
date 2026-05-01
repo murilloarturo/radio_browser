@@ -1,0 +1,29 @@
+name: radio_browser
+description: A Flutter take-home project for browsing and playing internet radio stations.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  audio_session: ^0.2.3
+  cupertino_icons: ^1.0.8
+  dio: ^5.9.2
+  equatable: ^2.0.8
+  flutter_bloc: ^9.1.1
+  just_audio: ^0.10.5
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  bloc_test: ^10.0.0
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
