@@ -40,6 +40,13 @@ final class UnavailableStationFailure extends AppFailure {
   ]) : super(cause: cause);
 }
 
+final class PersistenceFailure extends AppFailure {
+  const PersistenceFailure([
+    super.message = 'Unable to access local storage.',
+    Object? cause,
+  ]) : super(cause: cause);
+}
+
 final class UnknownFailure extends AppFailure {
   const UnknownFailure([super.message = 'Something went wrong.', Object? cause])
     : super(cause: cause);

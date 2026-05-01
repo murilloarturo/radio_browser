@@ -53,7 +53,7 @@ Shared code belongs in `core` only when it is genuinely reusable across features
 - Use `flutter_bloc` and `equatable` for state management.
 - Use `dio` for HTTP access to the Radio Browser API.
 - Hide playback details behind a service abstraction backed by `just_audio` and `audio_session`.
-- Use `shared_preferences` through a small abstraction for favorites persistence.
+- Use Hive through a small abstraction for favorites persistence.
 - Add `go_router` only if navigation complexity justifies it.
 - Use `bloc_test` and `mocktail` for focused tests.
 

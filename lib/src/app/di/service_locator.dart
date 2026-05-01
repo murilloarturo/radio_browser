@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/config/radio_browser_config.dart';
 import '../../core/network/dio_client.dart';
@@ -13,10 +14,23 @@ import '../../features/discover/domain/usecases/get_stations.dart';
 import '../../features/discover/domain/usecases/get_stations_by_uuids.dart';
 import '../../features/discover/domain/usecases/resolve_station_stream_url.dart';
 import '../../features/discover/domain/usecases/search_stations.dart';
+import '../../features/favorites/data/datasources/favorite_stations_local_data_source.dart';
+import '../../features/favorites/data/models/favorite_station_hive_model.dart';
+import '../../features/favorites/data/repositories/hive_favorites_repository.dart';
+import '../../features/favorites/domain/repositories/favorites_repository.dart';
+import '../../features/favorites/domain/usecases/add_favorite_station.dart';
+import '../../features/favorites/domain/usecases/get_favorite_stations.dart';
+import '../../features/favorites/domain/usecases/is_favorite_station.dart';
+import '../../features/favorites/domain/usecases/remove_favorite_station.dart';
+import '../../features/favorites/domain/usecases/toggle_favorite_station.dart';
+import '../../features/favorites/domain/usecases/watch_favorite_stations.dart';
 
 final getIt = GetIt.instance;
 
-Future<void> configureDependencies({GetIt? serviceLocator}) async {
+Future<void> configureDependencies({
+  GetIt? serviceLocator,
+  Box<FavoriteStationHiveModel>? favoriteStationsBox,
+}) async {
   final sl = serviceLocator ?? getIt;
 
   if (!sl.isRegistered<RadioBrowserConfig>()) {
@@ -73,5 +87,68 @@ Future<void> configureDependencies({GetIt? serviceLocator}) async {
 
   if (!sl.isRegistered<GetStationsByUuids>()) {
     sl.registerFactory<GetStationsByUuids>(() => GetStationsByUuids(sl()));
+  }
+
+  final favoriteBox = favoriteStationsBox ?? await _openFavoriteStationsBox();
+
+  if (!sl.isRegistered<Box<FavoriteStationHiveModel>>()) {
+    sl.registerLazySingleton<Box<FavoriteStationHiveModel>>(() => favoriteBox);
+  }
+
+  if (!sl.isRegistered<FavoriteStationsLocalDataSource>()) {
+    sl.registerLazySingleton<FavoriteStationsLocalDataSource>(
+      () => HiveFavoriteStationsLocalDataSource(box: sl()),
+    );
+  }
+
+  if (!sl.isRegistered<FavoritesRepository>()) {
+    sl.registerLazySingleton<FavoritesRepository>(
+      () => HiveFavoritesRepository(localDataSource: sl()),
+    );
+  }
+
+  if (!sl.isRegistered<GetFavoriteStations>()) {
+    sl.registerFactory<GetFavoriteStations>(() => GetFavoriteStations(sl()));
+  }
+
+  if (!sl.isRegistered<WatchFavoriteStations>()) {
+    sl.registerFactory<WatchFavoriteStations>(
+      () => WatchFavoriteStations(sl()),
+    );
+  }
+
+  if (!sl.isRegistered<AddFavoriteStation>()) {
+    sl.registerFactory<AddFavoriteStation>(() => AddFavoriteStation(sl()));
+  }
+
+  if (!sl.isRegistered<RemoveFavoriteStation>()) {
+    sl.registerFactory<RemoveFavoriteStation>(
+      () => RemoveFavoriteStation(sl()),
+    );
+  }
+
+  if (!sl.isRegistered<ToggleFavoriteStation>()) {
+    sl.registerFactory<ToggleFavoriteStation>(
+      () => ToggleFavoriteStation(sl()),
+    );
+  }
+
+  if (!sl.isRegistered<IsFavoriteStation>()) {
+    sl.registerFactory<IsFavoriteStation>(() => IsFavoriteStation(sl()));
+  }
+}
+
+Future<Box<FavoriteStationHiveModel>> _openFavoriteStationsBox() async {
+  await Hive.initFlutter();
+  _registerFavoriteStationAdapter();
+  return Hive.openBox<FavoriteStationHiveModel>(
+    HiveFavoriteStationsLocalDataSource.boxName,
+  );
+}
+
+void _registerFavoriteStationAdapter() {
+  const adapterTypeId = 1;
+  if (!Hive.isAdapterRegistered(adapterTypeId)) {
+    Hive.registerAdapter(FavoriteStationHiveModelAdapter());
   }
 }

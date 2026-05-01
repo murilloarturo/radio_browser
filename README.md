@@ -55,6 +55,6 @@ The project uses a feature-first structure under `lib/src`:
 - `core`: shared configuration, networking, error handling, and reusable widgets
 - `features`: isolated product areas with `data`, `domain`, and `presentation` boundaries
 
-State management will use BLoC/Cubit via `flutter_bloc` and `equatable`. Data access will use `dio`, playback will be isolated behind a `just_audio`/`audio_session` service, and local favorites will use a small persistence abstraction over `shared_preferences`.
+State management will use BLoC/Cubit via `flutter_bloc` and `equatable`. Data access uses `dio`, playback will be isolated behind a `just_audio`/`audio_session` service, and local favorites use a small persistence abstraction over Hive.
 
 API keys must not be committed. Any optional OpenAI work later should use `--dart-define`.
