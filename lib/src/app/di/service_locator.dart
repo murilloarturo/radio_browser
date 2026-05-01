@@ -14,6 +14,7 @@ import '../../features/discover/domain/usecases/get_stations.dart';
 import '../../features/discover/domain/usecases/get_stations_by_uuids.dart';
 import '../../features/discover/domain/usecases/resolve_station_stream_url.dart';
 import '../../features/discover/domain/usecases/search_stations.dart';
+import '../../features/discover/presentation/cubit/discover_cubit.dart';
 import '../../features/favorites/data/datasources/favorite_stations_local_data_source.dart';
 import '../../features/favorites/data/models/favorite_station_hive_model.dart';
 import '../../features/favorites/data/repositories/hive_favorites_repository.dart';
@@ -135,6 +136,18 @@ Future<void> configureDependencies({
 
   if (!sl.isRegistered<IsFavoriteStation>()) {
     sl.registerFactory<IsFavoriteStation>(() => IsFavoriteStation(sl()));
+  }
+
+  if (!sl.isRegistered<DiscoverCubit>()) {
+    sl.registerFactory<DiscoverCubit>(
+      () => DiscoverCubit(
+        getStations: sl(),
+        searchStations: sl(),
+        getGenres: sl(),
+        watchFavoriteStations: sl(),
+        toggleFavoriteStation: sl(),
+      ),
+    );
   }
 }
 

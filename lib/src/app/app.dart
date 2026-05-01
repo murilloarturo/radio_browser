@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../features/discover/presentation/cubit/discover_cubit.dart';
+import '../features/discover/presentation/pages/discover_page.dart';
+import 'di/service_locator.dart';
 import 'theme/app_theme.dart';
 
 class RadioBrowserApp extends StatelessWidget {
-  const RadioBrowserApp({super.key});
+  const RadioBrowserApp({super.key, this.home});
+
+  final Widget? home;
 
   @override
   Widget build(BuildContext context) {
@@ -13,16 +19,19 @@ class RadioBrowserApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const AppBootstrapPage(),
+      home: home ?? const DiscoverEntryPoint(),
     );
   }
 }
 
-class AppBootstrapPage extends StatelessWidget {
-  const AppBootstrapPage({super.key});
+class DiscoverEntryPoint extends StatelessWidget {
+  const DiscoverEntryPoint({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('RadioBrowser')));
+    return BlocProvider<DiscoverCubit>(
+      create: (_) => getIt<DiscoverCubit>()..load(),
+      child: const DiscoverPage(),
+    );
   }
 }

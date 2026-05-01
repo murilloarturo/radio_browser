@@ -6,6 +6,7 @@ import 'package:radio_browser/src/features/discover/domain/usecases/get_stations
 import 'package:radio_browser/src/features/discover/domain/usecases/get_stations_by_uuids.dart';
 import 'package:radio_browser/src/features/discover/domain/usecases/resolve_station_stream_url.dart';
 import 'package:radio_browser/src/features/discover/domain/usecases/search_stations.dart';
+import 'package:radio_browser/src/features/discover/presentation/cubit/discover_cubit.dart';
 import 'package:radio_browser/src/features/favorites/domain/repositories/favorites_repository.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/add_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/get_favorite_stations.dart';
@@ -37,6 +38,7 @@ void main() {
     expect(getIt<GetGenres>(), isA<GetGenres>());
     expect(getIt<ResolveStationStreamUrl>(), isA<ResolveStationStreamUrl>());
     expect(getIt<GetStationsByUuids>(), isA<GetStationsByUuids>());
+    expect(getIt<DiscoverCubit>(), isA<DiscoverCubit>());
 
     expect(getIt<FavoritesRepository>(), isA<FavoritesRepository>());
     expect(getIt<GetFavoriteStations>(), isA<GetFavoriteStations>());
