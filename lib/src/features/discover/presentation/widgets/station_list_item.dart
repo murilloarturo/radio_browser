@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/station_artwork.dart';
 import '../../domain/entities/station.dart';
 import 'favorite_icon_button.dart';
@@ -11,6 +12,7 @@ class StationListItem extends StatelessWidget {
   const StationListItem({
     required this.station,
     required this.isFavorite,
+    required this.isLoading,
     required this.onPlay,
     required this.onFavoriteToggle,
     super.key,
@@ -18,6 +20,7 @@ class StationListItem extends StatelessWidget {
 
   final Station station;
   final bool isFavorite;
+  final bool isLoading;
   final VoidCallback onPlay;
   final VoidCallback onFavoriteToggle;
 
@@ -80,7 +83,7 @@ class StationListItem extends StatelessWidget {
                 isFavorite: isFavorite,
                 onPressed: onFavoriteToggle,
               ),
-              PlayStationButton(onPressed: onPlay),
+              PlayStationButton(isLoading: isLoading, onPressed: onPlay),
             ],
           ),
         ],
@@ -89,18 +92,18 @@ class StationListItem extends StatelessWidget {
   }
 
   String _locationLine(Station station) {
-    return [
-      station.countryCode,
-      station.language,
-    ].whereType<String>().where((value) => value.isNotEmpty).join(' - ');
+    return [station.countryCode, station.language]
+        .whereType<String>()
+        .where((value) => value.isNotEmpty)
+        .join(Localizable.metadataSeparator.text);
   }
 
   String _tagsLine(Station station) {
     if (station.tags.isEmpty) {
-      return 'Untagged';
+      return Localizable.untaggedStation.text;
     }
 
-    return station.tags.take(3).join(', ');
+    return station.tags.take(3).join(Localizable.listSeparator.text);
   }
 
   String _streamLine(Station station) {
@@ -108,9 +111,9 @@ class StationListItem extends StatelessWidget {
         [
           station.codec,
           if (station.bitrate != null && station.bitrate! > 0)
-            '${station.bitrate} kbps',
+            Localizable.bitrateKbpsTemplate.format({'value': station.bitrate!}),
         ].whereType<String>();
 
-    return parts.join(' - ');
+    return parts.join(Localizable.metadataSeparator.text);
   }
 }

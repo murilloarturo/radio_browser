@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/localization/localizable.dart';
 import '../features/discover/presentation/cubit/discover_cubit.dart';
 import '../features/discover/presentation/pages/discover_page.dart';
 import 'di/service_locator.dart';
@@ -14,7 +15,7 @@ class RadioBrowserApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RadioBrowser',
+      title: Localizable.appTitle.text,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

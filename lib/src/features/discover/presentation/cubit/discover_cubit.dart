@@ -6,6 +6,11 @@ import '../../../../core/result/result.dart';
 import '../../../favorites/domain/entities/favorite_station.dart';
 import '../../../favorites/domain/usecases/toggle_favorite_station.dart';
 import '../../../favorites/domain/usecases/watch_favorite_stations.dart';
+import '../../../player/domain/entities/radio_playback_snapshot.dart';
+import '../../../player/domain/usecases/pause_radio_station.dart';
+import '../../../player/domain/usecases/play_radio_station.dart';
+import '../../../player/domain/usecases/resume_radio_station.dart';
+import '../../../player/domain/usecases/watch_radio_playback.dart';
 import '../../domain/entities/station.dart';
 import '../../domain/entities/station_search_query.dart';
 import '../../domain/usecases/get_genres.dart';
@@ -22,11 +27,19 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     required GetGenres getGenres,
     required WatchFavoriteStations watchFavoriteStations,
     required ToggleFavoriteStation toggleFavoriteStation,
+    required PlayRadioStation playRadioStation,
+    required PauseRadioStation pauseRadioStation,
+    required ResumeRadioStation resumeRadioStation,
+    required WatchRadioPlayback watchRadioPlayback,
   }) : _getStations = getStations,
        _searchStations = searchStations,
        _getGenres = getGenres,
        _watchFavoriteStations = watchFavoriteStations,
        _toggleFavoriteStation = toggleFavoriteStation,
+       _playRadioStation = playRadioStation,
+       _pauseRadioStation = pauseRadioStation,
+       _resumeRadioStation = resumeRadioStation,
+       _watchRadioPlayback = watchRadioPlayback,
        super(const DiscoverState());
 
   final GetStations _getStations;
@@ -34,11 +47,17 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   final GetGenres _getGenres;
   final WatchFavoriteStations _watchFavoriteStations;
   final ToggleFavoriteStation _toggleFavoriteStation;
+  final PlayRadioStation _playRadioStation;
+  final PauseRadioStation _pauseRadioStation;
+  final ResumeRadioStation _resumeRadioStation;
+  final WatchRadioPlayback _watchRadioPlayback;
 
   StreamSubscription<Result<List<FavoriteStation>>>? _favoritesSubscription;
+  StreamSubscription<RadioPlaybackSnapshot>? _playbackSubscription;
 
   Future<void> load() async {
     _watchFavorites();
+    _watchPlayback();
     emit(
       state.copyWith(status: DiscoverStatus.loading, clearFailureMessage: true),
     );
@@ -86,16 +105,69 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     );
   }
 
-  void playStation(Station station) {
-    emit(state.copyWith(activeStation: station, isMiniPlayerPlaying: true));
+  Future<void> playStation(Station station) async {
+    emit(
+      state.copyWith(
+        activeStation: station,
+        playbackStatus: RadioPlaybackStatus.loading,
+        clearPlaybackFailureMessage: true,
+      ),
+    );
+
+    final result = await _playRadioStation(station);
+    result.when(
+      success: (_) {},
+      failure:
+          (failure) => emit(
+            state.copyWith(
+              activeStation: station,
+              playbackStatus: RadioPlaybackStatus.failure,
+              playbackFailureMessage: failure.message,
+            ),
+          ),
+    );
   }
 
-  void toggleMiniPlayerPlayback() {
+  Future<void> toggleMiniPlayerPlayback() async {
     if (!state.hasMiniPlayer) {
       return;
     }
 
-    emit(state.copyWith(isMiniPlayerPlaying: !state.isMiniPlayerPlaying));
+    if (state.playbackStatus == RadioPlaybackStatus.loading) {
+      return;
+    }
+
+    if (state.playbackStatus == RadioPlaybackStatus.playing) {
+      final result = await _pauseRadioStation();
+      result.when(
+        success: (_) {},
+        failure:
+            (failure) => emit(
+              state.copyWith(
+                playbackStatus: RadioPlaybackStatus.failure,
+                playbackFailureMessage: failure.message,
+              ),
+            ),
+      );
+      return;
+    }
+
+    if (state.playbackStatus == RadioPlaybackStatus.paused) {
+      final result = await _resumeRadioStation();
+      result.when(
+        success: (_) {},
+        failure:
+            (failure) => emit(
+              state.copyWith(
+                playbackStatus: RadioPlaybackStatus.failure,
+                playbackFailureMessage: failure.message,
+              ),
+            ),
+      );
+      return;
+    }
+
+    await playStation(state.activeStation!);
   }
 
   Future<void> toggleFavorite(Station station) async {
@@ -159,9 +231,28 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     });
   }
 
+  void _watchPlayback() {
+    _playbackSubscription ??= _watchRadioPlayback().listen((snapshot) {
+      if (isClosed) {
+        return;
+      }
+
+      emit(
+        state.copyWith(
+          activeStation: snapshot.station,
+          clearActiveStation: snapshot.station == null,
+          playbackStatus: snapshot.status,
+          playbackFailureMessage: snapshot.failureMessage,
+          clearPlaybackFailureMessage: snapshot.failureMessage == null,
+        ),
+      );
+    });
+  }
+
   @override
   Future<void> close() async {
     await _favoritesSubscription?.cancel();
+    await _playbackSubscription?.cancel();
     return super.close();
   }
 }

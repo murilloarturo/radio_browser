@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../cubit/discover_cubit.dart';
@@ -21,7 +22,21 @@ class DiscoverPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DiscoverCubit, DiscoverState>(
+    return BlocConsumer<DiscoverCubit, DiscoverState>(
+      listenWhen:
+          (previous, current) =>
+              previous.playbackFailureMessage !=
+                  current.playbackFailureMessage &&
+              current.playbackFailureMessage != null,
+      listener: (context, state) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              state.playbackFailureMessage ?? Localizable.playbackFailed.text,
+            ),
+          ),
+        );
+      },
       builder: (context, state) {
         return Scaffold(
           backgroundColor: AppColors.paper,
@@ -38,7 +53,7 @@ class DiscoverPage extends StatelessWidget {
                 if (state.hasMiniPlayer)
                   MiniPlayerBar(
                     station: state.activeStation!,
-                    isPlaying: state.isMiniPlayerPlaying,
+                    playbackStatus: state.playbackStatus,
                     isFavorite: context.read<DiscoverCubit>().isFavorite(
                       state.activeStation!.stationUuid,
                     ),
@@ -83,7 +98,9 @@ class _DiscoverBody extends StatelessWidget {
           SizedBox(
             height: 420,
             child: AppErrorState(
-              message: state.failureMessage ?? 'Please try again.',
+              message:
+                  state.failureMessage ??
+                  Localizable.pleaseTryAgainMessage.text,
               onRetry: context.read<DiscoverCubit>().refresh,
             ),
           ),
@@ -104,11 +121,11 @@ class _DiscoverBody extends StatelessWidget {
           SizedBox(
             height: 420,
             child: AppEmptyState(
-              title: 'No stations found',
+              title: Localizable.noStationsFoundTitle.text,
               message:
                   state.searchTerm.isEmpty
-                      ? 'Try another filter.'
-                      : 'Try another search term.',
+                      ? Localizable.noStationsForFilterMessage.text
+                      : Localizable.noStationsForSearchMessage.text,
             ),
           ),
         ],
@@ -136,6 +153,10 @@ class _DiscoverBody extends StatelessWidget {
             isFavorite: context.read<DiscoverCubit>().isFavorite(
               state.recommendedStation!.stationUuid,
             ),
+            isLoading:
+                state.isPlaybackLoading &&
+                state.activeStation?.stationUuid ==
+                    state.recommendedStation!.stationUuid,
             onPlay:
                 () => context.read<DiscoverCubit>().playStation(
                   state.recommendedStation!,
@@ -159,6 +180,8 @@ class _DiscoverBody extends StatelessWidget {
         StationList(
           stations: state.stations,
           favoriteStationUuids: state.favoriteStationUuids,
+          activeStationUuid: state.activeStation?.stationUuid,
+          isPlaybackLoading: state.isPlaybackLoading,
           onPlay: context.read<DiscoverCubit>().playStation,
           onFavoriteToggle: context.read<DiscoverCubit>().toggleFavorite,
         ),

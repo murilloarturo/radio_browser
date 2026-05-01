@@ -1,33 +1,52 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/localization/localizable.dart';
 
 class PlayStationButton extends StatelessWidget {
-  const PlayStationButton({required this.onPressed, this.label, super.key});
+  const PlayStationButton({
+    required this.onPressed,
+    this.label,
+    this.isLoading = false,
+    super.key,
+  });
 
   final VoidCallback onPressed;
-  final String? label;
+  final Localizable? label;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     if (label == null) {
       return IconButton.filled(
-        tooltip: 'Play station',
-        onPressed: onPressed,
+        tooltip: Localizable.playStation.text,
+        onPressed: isLoading ? null : onPressed,
         style: IconButton.styleFrom(
           backgroundColor: AppColors.surface,
           foregroundColor: AppColors.brand,
           side: const BorderSide(color: AppColors.ink),
           minimumSize: const Size.square(44),
         ),
-        icon: const Icon(Icons.play_arrow_rounded),
+        icon:
+            isLoading
+                ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                : const Icon(Icons.play_arrow_rounded),
       );
     }
 
     return FilledButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.play_arrow_rounded),
-      label: Text(label!),
+      onPressed: isLoading ? null : onPressed,
+      icon:
+          isLoading
+              ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : const Icon(Icons.play_arrow_rounded),
+      label: Text(label!.text),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../favorites/domain/entities/favorite_station.dart';
+import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../domain/entities/station.dart';
 import '../../domain/entities/station_genre.dart';
 import 'discover_filter.dart';
@@ -17,7 +18,8 @@ class DiscoverState extends Equatable {
     this.searchTerm = '',
     this.failureMessage,
     this.activeStation,
-    this.isMiniPlayerPlaying = false,
+    this.playbackStatus = RadioPlaybackStatus.idle,
+    this.playbackFailureMessage,
   });
 
   final DiscoverStatus status;
@@ -28,13 +30,18 @@ class DiscoverState extends Equatable {
   final String searchTerm;
   final String? failureMessage;
   final Station? activeStation;
-  final bool isMiniPlayerPlaying;
+  final RadioPlaybackStatus playbackStatus;
+  final String? playbackFailureMessage;
 
   bool get isLoading => status == DiscoverStatus.loading;
 
   bool get hasStations => stations.isNotEmpty;
 
   bool get hasMiniPlayer => activeStation != null;
+
+  bool get isMiniPlayerPlaying => playbackStatus == RadioPlaybackStatus.playing;
+
+  bool get isPlaybackLoading => playbackStatus == RadioPlaybackStatus.loading;
 
   Set<String> get favoriteStationUuids {
     return favoriteStations.map((station) => station.stationUuid).toSet();
@@ -59,7 +66,9 @@ class DiscoverState extends Equatable {
     bool clearFailureMessage = false,
     Station? activeStation,
     bool clearActiveStation = false,
-    bool? isMiniPlayerPlaying,
+    RadioPlaybackStatus? playbackStatus,
+    String? playbackFailureMessage,
+    bool clearPlaybackFailureMessage = false,
   }) {
     return DiscoverState(
       status: status ?? this.status,
@@ -72,7 +81,11 @@ class DiscoverState extends Equatable {
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
       activeStation:
           clearActiveStation ? null : activeStation ?? this.activeStation,
-      isMiniPlayerPlaying: isMiniPlayerPlaying ?? this.isMiniPlayerPlaying,
+      playbackStatus: playbackStatus ?? this.playbackStatus,
+      playbackFailureMessage:
+          clearPlaybackFailureMessage
+              ? null
+              : playbackFailureMessage ?? this.playbackFailureMessage,
     );
   }
 
@@ -86,6 +99,7 @@ class DiscoverState extends Equatable {
     searchTerm,
     failureMessage,
     activeStation,
-    isMiniPlayerPlaying,
+    playbackStatus,
+    playbackFailureMessage,
   ];
 }

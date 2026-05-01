@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/localization/localizable.dart';
 
 class FavoriteIconButton extends StatelessWidget {
   const FavoriteIconButton({
@@ -15,7 +16,10 @@ class FavoriteIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
+      tooltip:
+          isFavorite
+              ? Localizable.removeFavorite.text
+              : Localizable.addFavorite.text,
       onPressed: onPressed,
       icon: Icon(
         isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,

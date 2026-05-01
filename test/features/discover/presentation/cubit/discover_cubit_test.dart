@@ -14,6 +14,11 @@ import 'package:radio_browser/src/features/discover/presentation/cubit/discover_
 import 'package:radio_browser/src/features/favorites/domain/entities/favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/toggle_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/watch_favorite_stations.dart';
+import 'package:radio_browser/src/features/player/domain/entities/radio_playback_snapshot.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/pause_radio_station.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/play_radio_station.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/resume_radio_station.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/watch_radio_playback.dart';
 
 import '../../../../helpers/favorite_station_fixtures.dart';
 import '../../../../helpers/station_fixtures.dart';
@@ -28,12 +33,24 @@ class MockWatchFavoriteStations extends Mock implements WatchFavoriteStations {}
 
 class MockToggleFavoriteStation extends Mock implements ToggleFavoriteStation {}
 
+class MockPlayRadioStation extends Mock implements PlayRadioStation {}
+
+class MockPauseRadioStation extends Mock implements PauseRadioStation {}
+
+class MockResumeRadioStation extends Mock implements ResumeRadioStation {}
+
+class MockWatchRadioPlayback extends Mock implements WatchRadioPlayback {}
+
 void main() {
   late MockGetStations getStations;
   late MockSearchStations searchStations;
   late MockGetGenres getGenres;
   late MockWatchFavoriteStations watchFavoriteStations;
   late MockToggleFavoriteStation toggleFavoriteStation;
+  late MockPlayRadioStation playRadioStation;
+  late MockPauseRadioStation pauseRadioStation;
+  late MockResumeRadioStation resumeRadioStation;
+  late MockWatchRadioPlayback watchRadioPlayback;
   late Station station;
   late FavoriteStation favoriteStation;
 
@@ -44,12 +61,17 @@ void main() {
       getGenres: getGenres,
       watchFavoriteStations: watchFavoriteStations,
       toggleFavoriteStation: toggleFavoriteStation,
+      playRadioStation: playRadioStation,
+      pauseRadioStation: pauseRadioStation,
+      resumeRadioStation: resumeRadioStation,
+      watchRadioPlayback: watchRadioPlayback,
     );
   }
 
   setUpAll(() {
     registerFallbackValue(const StationSearchQuery());
     registerFallbackValue(favoriteStationFixture());
+    registerFallbackValue(stationFixture());
   });
 
   setUp(() {
@@ -58,6 +80,10 @@ void main() {
     getGenres = MockGetGenres();
     watchFavoriteStations = MockWatchFavoriteStations();
     toggleFavoriteStation = MockToggleFavoriteStation();
+    playRadioStation = MockPlayRadioStation();
+    pauseRadioStation = MockPauseRadioStation();
+    resumeRadioStation = MockResumeRadioStation();
+    watchRadioPlayback = MockWatchRadioPlayback();
     station = stationFixture();
     favoriteStation = favoriteStationFixture(
       stationUuid: station.stationUuid,
@@ -83,6 +109,18 @@ void main() {
     when(
       () => toggleFavoriteStation(any()),
     ).thenAnswer((_) async => const Success<bool>(true));
+    when(
+      () => playRadioStation(any()),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => pauseRadioStation(),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => resumeRadioStation(),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => watchRadioPlayback(),
+    ).thenAnswer((_) => const Stream<RadioPlaybackSnapshot>.empty());
   });
 
   blocTest<DiscoverCubit, DiscoverState>(
@@ -139,12 +177,66 @@ void main() {
   );
 
   blocTest<DiscoverCubit, DiscoverState>(
-    'sets mini-player station when play is requested',
+    'starts playback and sets mini-player loading state',
     build: buildCubit,
     act: (cubit) => cubit.playStation(station),
     verify: (cubit) {
+      verify(() => playRadioStation(station)).called(1);
+      expect(cubit.state.activeStation, station);
+      expect(cubit.state.playbackStatus, RadioPlaybackStatus.loading);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'updates playback state from the player stream',
+    setUp: () {
+      when(() => watchRadioPlayback()).thenAnswer(
+        (_) => Stream<RadioPlaybackSnapshot>.value(
+          RadioPlaybackSnapshot(
+            status: RadioPlaybackStatus.playing,
+            station: station,
+          ),
+        ),
+      );
+    },
+    build: buildCubit,
+    act: (cubit) async {
+      await cubit.load();
+      await pumpEventQueue();
+    },
+    verify: (cubit) {
       expect(cubit.state.activeStation, station);
       expect(cubit.state.isMiniPlayerPlaying, isTrue);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'pauses active playback from mini-player',
+    build: buildCubit,
+    seed:
+        () => DiscoverState(
+          activeStation: station,
+          playbackStatus: RadioPlaybackStatus.playing,
+        ),
+    act: (cubit) => cubit.toggleMiniPlayerPlayback(),
+    verify: (_) {
+      verify(() => pauseRadioStation()).called(1);
+      verifyNever(() => resumeRadioStation());
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'resumes paused playback from mini-player',
+    build: buildCubit,
+    seed:
+        () => DiscoverState(
+          activeStation: station,
+          playbackStatus: RadioPlaybackStatus.paused,
+        ),
+    act: (cubit) => cubit.toggleMiniPlayerPlayback(),
+    verify: (_) {
+      verify(() => resumeRadioStation()).called(1);
+      verifyNever(() => pauseRadioStation());
     },
   );
 

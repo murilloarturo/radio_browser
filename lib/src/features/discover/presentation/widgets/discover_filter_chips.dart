@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 import '../cubit/discover_filter.dart';
 
 class DiscoverFilterChips extends StatelessWidget {
@@ -20,21 +21,14 @@ class DiscoverFilterChips extends StatelessWidget {
       height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: DiscoverFilter.defaults.length + 1,
+        itemCount: DiscoverFilter.defaults.length,
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
-          if (index == DiscoverFilter.defaults.length) {
-            return const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.ink,
-            );
-          }
-
           final filter = DiscoverFilter.defaults[index];
           final isSelected = filter == activeFilter;
 
           return ChoiceChip(
-            label: Text(filter.label),
+            label: Text(filter.labelKey.text),
             selected: isSelected,
             showCheckmark: false,
             onSelected: (_) => onFilterSelected(filter),

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../../core/config/radio_browser_config.dart';
 import '../../core/network/dio_client.dart';
@@ -25,12 +26,20 @@ import '../../features/favorites/domain/usecases/is_favorite_station.dart';
 import '../../features/favorites/domain/usecases/remove_favorite_station.dart';
 import '../../features/favorites/domain/usecases/toggle_favorite_station.dart';
 import '../../features/favorites/domain/usecases/watch_favorite_stations.dart';
+import '../../features/player/data/repositories/just_audio_radio_player_repository.dart';
+import '../../features/player/domain/repositories/radio_player_repository.dart';
+import '../../features/player/domain/usecases/pause_radio_station.dart';
+import '../../features/player/domain/usecases/play_radio_station.dart';
+import '../../features/player/domain/usecases/resume_radio_station.dart';
+import '../../features/player/domain/usecases/stop_radio_station.dart';
+import '../../features/player/domain/usecases/watch_radio_playback.dart';
 
 final getIt = GetIt.instance;
 
 Future<void> configureDependencies({
   GetIt? serviceLocator,
   Box<FavoriteStationHiveModel>? favoriteStationsBox,
+  RadioPlayerRepository? radioPlayerRepository,
 }) async {
   final sl = serviceLocator ?? getIt;
 
@@ -138,6 +147,49 @@ Future<void> configureDependencies({
     sl.registerFactory<IsFavoriteStation>(() => IsFavoriteStation(sl()));
   }
 
+  if (radioPlayerRepository != null &&
+      !sl.isRegistered<RadioPlayerRepository>()) {
+    sl.registerLazySingleton<RadioPlayerRepository>(
+      () => radioPlayerRepository,
+    );
+  }
+
+  if (!sl.isRegistered<RadioPlayerRepository>()) {
+    if (!sl.isRegistered<AudioPlayer>()) {
+      sl.registerLazySingleton<AudioPlayer>(AudioPlayer.new);
+    }
+
+    sl.registerLazySingleton<RadioPlayerRepository>(
+      () => JustAudioRadioPlayerRepository(audioPlayer: sl()),
+      dispose: (repository) => repository.dispose(),
+    );
+  }
+
+  if (!sl.isRegistered<PlayRadioStation>()) {
+    sl.registerFactory<PlayRadioStation>(
+      () => PlayRadioStation(
+        resolveStationStreamUrl: sl(),
+        radioPlayerRepository: sl(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<PauseRadioStation>()) {
+    sl.registerFactory<PauseRadioStation>(() => PauseRadioStation(sl()));
+  }
+
+  if (!sl.isRegistered<ResumeRadioStation>()) {
+    sl.registerFactory<ResumeRadioStation>(() => ResumeRadioStation(sl()));
+  }
+
+  if (!sl.isRegistered<StopRadioStation>()) {
+    sl.registerFactory<StopRadioStation>(() => StopRadioStation(sl()));
+  }
+
+  if (!sl.isRegistered<WatchRadioPlayback>()) {
+    sl.registerFactory<WatchRadioPlayback>(() => WatchRadioPlayback(sl()));
+  }
+
   if (!sl.isRegistered<DiscoverCubit>()) {
     sl.registerFactory<DiscoverCubit>(
       () => DiscoverCubit(
@@ -146,6 +198,10 @@ Future<void> configureDependencies({
         getGenres: sl(),
         watchFavoriteStations: sl(),
         toggleFavoriteStation: sl(),
+        playRadioStation: sl(),
+        pauseRadioStation: sl(),
+        resumeRadioStation: sl(),
+        watchRadioPlayback: sl(),
       ),
     );
   }

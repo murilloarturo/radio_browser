@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
+import '../localization/localizable.dart';
 
 class AppErrorState extends StatelessWidget {
   const AppErrorState({
@@ -30,7 +31,7 @@ class AppErrorState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Stations could not load',
+              Localizable.stationsCouldNotLoadTitle.text,
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -45,7 +46,7 @@ class AppErrorState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
+              label: Text(Localizable.retry.text),
             ),
           ],
         ),

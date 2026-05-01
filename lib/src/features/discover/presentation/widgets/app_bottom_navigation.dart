@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   const AppBottomNavigation({super.key});
@@ -27,13 +28,16 @@ class AppBottomNavigation extends StatelessWidget {
             children: const [
               _BottomNavItem(
                 icon: Icons.home_rounded,
-                label: 'Discover',
+                label: Localizable.discoverTab,
                 isSelected: true,
               ),
-              _BottomNavItem(icon: Icons.search_rounded, label: 'AI Finder'),
+              _BottomNavItem(
+                icon: Icons.search_rounded,
+                label: Localizable.aiFinderTab,
+              ),
               _BottomNavItem(
                 icon: Icons.favorite_border_rounded,
-                label: 'Favorites',
+                label: Localizable.favoritesTab,
               ),
             ],
           ),
@@ -51,7 +55,7 @@ class _BottomNavItem extends StatelessWidget {
   });
 
   final IconData icon;
-  final String label;
+  final Localizable label;
   final bool isSelected;
 
   @override
@@ -66,7 +70,7 @@ class _BottomNavItem extends StatelessWidget {
           Icon(icon, color: color, size: 28),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            label,
+            label.text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(

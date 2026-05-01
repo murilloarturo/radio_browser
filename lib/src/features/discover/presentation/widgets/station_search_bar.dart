@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 
 class StationSearchBar extends StatefulWidget {
   const StationSearchBar({
@@ -61,15 +62,15 @@ class _StationSearchBarState extends State<StationSearchBar> {
                 controller: _controller,
                 textInputAction: TextInputAction.search,
                 onSubmitted: widget.onSubmitted,
-                decoration: const InputDecoration(
-                  hintText: 'Search stations, genres, countries...',
+                decoration: InputDecoration(
+                  hintText: Localizable.searchWithAiHint.text,
                   border: InputBorder.none,
                   isCollapsed: true,
                 ),
               ),
             ),
             IconButton(
-              tooltip: 'Voice search',
+              tooltip: Localizable.searchWithAiHint.text,
               onPressed: () {},
               icon: const Icon(Icons.mic_none_rounded, color: AppColors.ink),
             ),

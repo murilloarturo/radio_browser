@@ -8,6 +8,8 @@ class StationList extends StatelessWidget {
   const StationList({
     required this.stations,
     required this.favoriteStationUuids,
+    required this.activeStationUuid,
+    required this.isPlaybackLoading,
     required this.onPlay,
     required this.onFavoriteToggle,
     super.key,
@@ -15,6 +17,8 @@ class StationList extends StatelessWidget {
 
   final List<Station> stations;
   final Set<String> favoriteStationUuids;
+  final String? activeStationUuid;
+  final bool isPlaybackLoading;
   final ValueChanged<Station> onPlay;
   final ValueChanged<Station> onFavoriteToggle;
 
@@ -33,6 +37,9 @@ class StationList extends StatelessWidget {
               isFavorite: favoriteStationUuids.contains(
                 indexedStation.$2.stationUuid,
               ),
+              isLoading:
+                  isPlaybackLoading &&
+                  activeStationUuid == indexedStation.$2.stationUuid,
               onPlay: () => onPlay(indexedStation.$2),
               onFavoriteToggle: () => onFavoriteToggle(indexedStation.$2),
             ),

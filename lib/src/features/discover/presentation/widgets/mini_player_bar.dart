@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/station_artwork.dart';
+import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../domain/entities/station.dart';
 import 'favorite_icon_button.dart';
 
 class MiniPlayerBar extends StatelessWidget {
   const MiniPlayerBar({
     required this.station,
-    required this.isPlaying,
+    required this.playbackStatus,
     required this.isFavorite,
     required this.onPlaybackToggle,
     required this.onFavoriteToggle,
@@ -18,7 +20,7 @@ class MiniPlayerBar extends StatelessWidget {
   });
 
   final Station station;
-  final bool isPlaying;
+  final RadioPlaybackStatus playbackStatus;
   final bool isFavorite;
   final VoidCallback onPlaybackToggle;
   final VoidCallback onFavoriteToggle;
@@ -69,13 +71,24 @@ class MiniPlayerBar extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: isPlaying ? 'Pause preview' : 'Resume preview',
-              onPressed: onPlaybackToggle,
-              icon: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: AppColors.ink,
-                size: 32,
-              ),
+              tooltip: _playbackTooltip,
+              onPressed:
+                  playbackStatus == RadioPlaybackStatus.loading
+                      ? null
+                      : onPlaybackToggle,
+              icon:
+                  playbackStatus == RadioPlaybackStatus.loading
+                      ? const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Icon(
+                        playbackStatus == RadioPlaybackStatus.playing
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: AppColors.ink,
+                        size: 32,
+                      ),
             ),
             FavoriteIconButton(
               isFavorite: isFavorite,
@@ -87,12 +100,19 @@ class MiniPlayerBar extends StatelessWidget {
     );
   }
 
+  String get _playbackTooltip {
+    return playbackStatus == RadioPlaybackStatus.playing
+        ? Localizable.pauseStation.text
+        : Localizable.resumeStation.text;
+  }
+
   String _stationSubtitle(Station station) {
     final pieces = [
       station.countryCode,
-      if (station.tags.isNotEmpty) station.tags.take(3).join(', '),
+      if (station.tags.isNotEmpty)
+        station.tags.take(3).join(Localizable.listSeparator.text),
     ].whereType<String>().where((value) => value.isNotEmpty);
 
-    return pieces.join(' - ');
+    return pieces.join(Localizable.metadataSeparator.text);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/station_artwork.dart';
 import '../../domain/entities/station.dart';
 import 'favorite_icon_button.dart';
@@ -12,6 +13,7 @@ class RecommendedStationCard extends StatelessWidget {
   const RecommendedStationCard({
     required this.station,
     required this.isFavorite,
+    required this.isLoading,
     required this.onPlay,
     required this.onFavoriteToggle,
     super.key,
@@ -19,6 +21,7 @@ class RecommendedStationCard extends StatelessWidget {
 
   final Station station;
   final bool isFavorite;
+  final bool isLoading;
   final VoidCallback onPlay;
   final VoidCallback onFavoriteToggle;
 
@@ -30,7 +33,7 @@ class RecommendedStationCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recommended for you',
+          Localizable.recommendedForYou.text,
           style: textTheme.titleMedium?.copyWith(
             color: AppColors.ink,
             fontWeight: FontWeight.w800,
@@ -95,7 +98,8 @@ class RecommendedStationCard extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: PlayStationButton(
-                          label: 'Play',
+                          label: Localizable.play,
+                          isLoading: isLoading,
                           onPressed: onPlay,
                         ),
                       ),
@@ -112,13 +116,19 @@ class RecommendedStationCard extends StatelessWidget {
 
   String _metadataLine(Station station) {
     return [
-      station.countryCode,
-      if (station.tags.isNotEmpty) station.tags.first,
-    ].whereType<String>().where((value) => value.isNotEmpty).join(' - ');
+          station.countryCode,
+          if (station.tags.isNotEmpty) station.tags.first,
+        ]
+        .whereType<String>()
+        .where((value) => value.isNotEmpty)
+        .join(Localizable.metadataSeparator.text);
   }
 
   String _recommendationText(Station station) {
-    final tag = station.tags.isEmpty ? 'listening' : station.tags.first;
-    return '"Great for $tag"';
+    final tag =
+        station.tags.isEmpty
+            ? Localizable.listeningFallback.text
+            : station.tags.first;
+    return Localizable.recommendationTemplate.format({'value': tag});
   }
 }

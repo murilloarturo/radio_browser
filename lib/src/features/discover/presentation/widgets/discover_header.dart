@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/localization/localizable.dart';
 
 class DiscoverHeader extends StatelessWidget {
   const DiscoverHeader({super.key});
@@ -11,17 +12,12 @@ class DiscoverHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            'WaveFinder',
+            Localizable.appTitle.text,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: AppColors.ink,
               fontWeight: FontWeight.w800,
             ),
           ),
-        ),
-        IconButton(
-          tooltip: 'Settings',
-          onPressed: () {},
-          icon: const Icon(Icons.settings_outlined),
         ),
       ],
     );
