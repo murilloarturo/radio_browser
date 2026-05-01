@@ -27,6 +27,26 @@ flutter analyze
 flutter test
 ```
 
+## Debugging Radio Browser API Calls
+
+The app does not call the Radio Browser API during normal placeholder startup yet. To force a debug-only startup smoke request, run:
+
+```sh
+flutter run --dart-define=RADIO_BROWSER_API_SMOKE=true
+```
+
+In Android Studio, add this to the run configuration's **Additional run args**:
+
+```sh
+--dart-define=RADIO_BROWSER_API_SMOKE=true
+```
+
+Then filter Run output or Logcat for:
+
+```text
+RadioBrowserAPI
+```
+
 ## Architecture
 
 The project uses a feature-first structure under `lib/src`:

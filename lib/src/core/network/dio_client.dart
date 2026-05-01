@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 
 import '../config/radio_browser_config.dart';
+import 'radio_browser_api_logger.dart';
 
 Dio createRadioBrowserDio(RadioBrowserConfig config) {
-  return Dio(
+  final dio = Dio(
     BaseOptions(
       connectTimeout: config.connectTimeout,
       receiveTimeout: config.receiveTimeout,
@@ -15,4 +16,20 @@ Dio createRadioBrowserDio(RadioBrowserConfig config) {
       },
     ),
   );
+
+  assert(() {
+    dio.interceptors.add(
+      LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: false,
+        responseBody: true,
+        error: true,
+        logPrint: logRadioBrowserApi,
+      ),
+    );
+    return true;
+  }());
+
+  return dio;
 }

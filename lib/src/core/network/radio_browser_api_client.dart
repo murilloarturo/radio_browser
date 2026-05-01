@@ -107,9 +107,11 @@ class RadioBrowserApiClient {
     return value.map((key, value) => MapEntry(key.toString(), value));
   }
 
-  Map<String, Object?> _withoutNulls(Map<String, Object?> values) {
+  Map<String, String> _withoutNulls(Map<String, Object?> values) {
     return Map.fromEntries(
-      values.entries.where((entry) => entry.value != null),
+      values.entries
+          .where((entry) => entry.value != null)
+          .map((entry) => MapEntry(entry.key, entry.value.toString())),
     );
   }
 }
