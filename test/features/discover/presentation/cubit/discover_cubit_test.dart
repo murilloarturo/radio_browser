@@ -3,6 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:radio_browser/src/core/error/app_failure.dart';
 import 'package:radio_browser/src/core/result/result.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/rank_stations_with_ai.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/start_voice_search_recording.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/stop_voice_search_recording.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/transcribe_station_search.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station_genre.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station_search_query.dart';
@@ -32,6 +36,17 @@ class MockSearchStations extends Mock implements SearchStations {}
 
 class MockGetGenres extends Mock implements GetGenres {}
 
+class MockRankStationsWithAi extends Mock implements RankStationsWithAi {}
+
+class MockStartVoiceSearchRecording extends Mock
+    implements StartVoiceSearchRecording {}
+
+class MockStopVoiceSearchRecording extends Mock
+    implements StopVoiceSearchRecording {}
+
+class MockTranscribeStationSearch extends Mock
+    implements TranscribeStationSearch {}
+
 class MockWatchFavoriteStations extends Mock implements WatchFavoriteStations {}
 
 class MockToggleFavoriteStation extends Mock implements ToggleFavoriteStation {}
@@ -52,6 +67,10 @@ void main() {
   late MockGetStations getStations;
   late MockSearchStations searchStations;
   late MockGetGenres getGenres;
+  late MockRankStationsWithAi rankStationsWithAi;
+  late MockStartVoiceSearchRecording startVoiceSearchRecording;
+  late MockStopVoiceSearchRecording stopVoiceSearchRecording;
+  late MockTranscribeStationSearch transcribeStationSearch;
   late MockWatchFavoriteStations watchFavoriteStations;
   late MockToggleFavoriteStation toggleFavoriteStation;
   late MockPlayRadioStation playRadioStation;
@@ -68,6 +87,10 @@ void main() {
       getStations: getStations,
       searchStations: searchStations,
       getGenres: getGenres,
+      rankStationsWithAi: rankStationsWithAi,
+      startVoiceSearchRecording: startVoiceSearchRecording,
+      stopVoiceSearchRecording: stopVoiceSearchRecording,
+      transcribeStationSearch: transcribeStationSearch,
       watchFavoriteStations: watchFavoriteStations,
       toggleFavoriteStation: toggleFavoriteStation,
       playRadioStation: playRadioStation,
@@ -81,6 +104,8 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(const StationSearchQuery());
+    registerFallbackValue(<Station>[]);
+    registerFallbackValue(<FavoriteStation>[]);
     registerFallbackValue(favoriteStationFixture());
     registerFallbackValue(stationFixture());
   });
@@ -89,6 +114,10 @@ void main() {
     getStations = MockGetStations();
     searchStations = MockSearchStations();
     getGenres = MockGetGenres();
+    rankStationsWithAi = MockRankStationsWithAi();
+    startVoiceSearchRecording = MockStartVoiceSearchRecording();
+    stopVoiceSearchRecording = MockStopVoiceSearchRecording();
+    transcribeStationSearch = MockTranscribeStationSearch();
     watchFavoriteStations = MockWatchFavoriteStations();
     toggleFavoriteStation = MockToggleFavoriteStation();
     playRadioStation = MockPlayRadioStation();
@@ -119,6 +148,28 @@ void main() {
     when(
       () => searchStations(any()),
     ).thenAnswer((_) async => Success<List<Station>>([station]));
+    when(() => rankStationsWithAi.isEnabled).thenReturn(false);
+    when(
+      () => rankStationsWithAi(
+        prompt: any(named: 'prompt'),
+        candidateStations: any(named: 'candidateStations'),
+        favoriteStations: any(named: 'favoriteStations'),
+      ),
+    ).thenAnswer((invocation) async {
+      return Success<List<Station>>(
+        invocation.namedArguments[#candidateStations] as List<Station>,
+      );
+    });
+    when(() => transcribeStationSearch.isEnabled).thenReturn(false);
+    when(
+      () => startVoiceSearchRecording(),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => stopVoiceSearchRecording(),
+    ).thenAnswer((_) async => const Success<String?>('/tmp/search.m4a'));
+    when(
+      () => transcribeStationSearch(any()),
+    ).thenAnswer((_) async => const Success<String>('jazz'));
     when(
       () => toggleFavoriteStation(any()),
     ).thenAnswer((_) async => const Success<bool>(true));
@@ -182,6 +233,42 @@ void main() {
       final captured = verify(() => searchStations(captureAny())).captured;
       expect(captured.single, isA<StationSearchQuery>());
       expect((captured.single as StationSearchQuery).name, 'bbc');
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'uses OpenAI to rank real Radio Browser candidates for search',
+    setUp: () {
+      final secondStation = stationFixture(
+        stationUuid: 'station-2',
+        name: 'Focus Radio',
+        tags: const <String>['focus'],
+      );
+      when(() => rankStationsWithAi.isEnabled).thenReturn(true);
+      when(
+        () => searchStations(any()),
+      ).thenAnswer((_) async => Success<List<Station>>([station]));
+      when(
+        () => getStations(query: any(named: 'query')),
+      ).thenAnswer((_) async => Success<List<Station>>([secondStation]));
+      when(
+        () => rankStationsWithAi(
+          prompt: 'focus music',
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).thenAnswer(
+        (_) async => Success<List<Station>>([secondStation, station]),
+      );
+    },
+    build: buildCubit,
+    act: (cubit) => cubit.search('focus music'),
+    verify: (cubit) {
+      expect(cubit.state.stations.map((station) => station.stationUuid), [
+        'station-2',
+        station.stationUuid,
+      ]);
+      expect(cubit.state.aiRecommendationStatus, AiRecommendationStatus.ready);
     },
   );
 
@@ -303,6 +390,25 @@ void main() {
     act: (cubit) => cubit.stopPlayback(),
     verify: (_) {
       verify(() => stopRadioStation()).called(1);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'records, transcribes, and searches a voice query',
+    setUp: () {
+      when(() => transcribeStationSearch.isEnabled).thenReturn(true);
+    },
+    build: buildCubit,
+    act: (cubit) async {
+      await cubit.toggleVoiceSearch();
+      await cubit.toggleVoiceSearch();
+    },
+    verify: (_) {
+      verify(() => startVoiceSearchRecording()).called(1);
+      verify(() => stopVoiceSearchRecording()).called(1);
+      verify(() => transcribeStationSearch('/tmp/search.m4a')).called(1);
+      final captured = verify(() => searchStations(captureAny())).captured;
+      expect((captured.single as StationSearchQuery).name, 'jazz');
     },
   );
 }

@@ -35,13 +35,15 @@ class AppBottomNavigation extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _BottomNavItem(
-                icon: Icons.home_rounded,
+                selectedIcon: Icons.home_rounded,
+                unselectedIcon: Icons.home_outlined,
                 label: Localizable.discoverTab,
                 isSelected: selectedTab == AppTab.discover,
                 onPressed: () => onTabSelected(AppTab.discover),
               ),
               _BottomNavItem(
-                icon: Icons.favorite_border_rounded,
+                selectedIcon: Icons.favorite_rounded,
+                unselectedIcon: Icons.favorite_border_rounded,
                 label: Localizable.favoritesTab,
                 isSelected: selectedTab == AppTab.favorites,
                 onPressed: () => onTabSelected(AppTab.favorites),
@@ -56,13 +58,15 @@ class AppBottomNavigation extends StatelessWidget {
 
 class _BottomNavItem extends StatelessWidget {
   const _BottomNavItem({
-    required this.icon,
+    required this.selectedIcon,
+    required this.unselectedIcon,
     required this.label,
     required this.isSelected,
     required this.onPressed,
   });
 
-  final IconData icon;
+  final IconData selectedIcon;
+  final IconData unselectedIcon;
   final Localizable label;
   final bool isSelected;
   final VoidCallback onPressed;
@@ -83,7 +87,15 @@ class _BottomNavItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 28),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: Icon(
+                  isSelected ? selectedIcon : unselectedIcon,
+                  key: ValueKey<bool>(isSelected),
+                  color: color,
+                  size: 28,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 label.text,

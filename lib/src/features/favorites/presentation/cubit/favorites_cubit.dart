@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/result/result.dart';
 import '../../../discover/domain/entities/station.dart';
+import '../../../discover/domain/entities/station_search_query.dart';
+import '../../../discover/domain/usecases/search_stations.dart';
 import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../../player/domain/usecases/pause_radio_station.dart';
 import '../../../player/domain/usecases/play_radio_station.dart';
@@ -22,6 +24,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
   FavoritesCubit({
     required WatchFavoriteStations watchFavoriteStations,
     required ToggleFavoriteStation toggleFavoriteStation,
+    required SearchStations searchStations,
     required PlayRadioStation playRadioStation,
     required PauseRadioStation pauseRadioStation,
     required ResumeRadioStation resumeRadioStation,
@@ -30,6 +33,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
     required WatchRadioPlayback watchRadioPlayback,
   }) : _watchFavoriteStations = watchFavoriteStations,
        _toggleFavoriteStation = toggleFavoriteStation,
+       _searchStations = searchStations,
        _playRadioStation = playRadioStation,
        _pauseRadioStation = pauseRadioStation,
        _resumeRadioStation = resumeRadioStation,
@@ -40,6 +44,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
 
   final WatchFavoriteStations _watchFavoriteStations;
   final ToggleFavoriteStation _toggleFavoriteStation;
+  final SearchStations _searchStations;
   final PlayRadioStation _playRadioStation;
   final PauseRadioStation _pauseRadioStation;
   final ResumeRadioStation _resumeRadioStation;
@@ -49,6 +54,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
 
   StreamSubscription<Result<List<FavoriteStation>>>? _favoritesSubscription;
   StreamSubscription<RadioPlaybackSnapshot>? _playbackSubscription;
+  String? _activeSimilarStationUuid;
 
   void load() {
     _watchFavorites();
@@ -63,6 +69,10 @@ class FavoritesCubit extends Cubit<FavoritesState> {
 
   Future<void> playStation(FavoriteStation favoriteStation) {
     return _playStation(favoriteStation.toStation());
+  }
+
+  Future<void> playSimilarStation(Station station) {
+    return _playStation(station);
   }
 
   Future<void> removeFavorite(FavoriteStation favoriteStation) async {
@@ -148,9 +158,12 @@ class FavoritesCubit extends Cubit<FavoritesState> {
       state.copyWith(
         activeStation: station,
         playbackStatus: RadioPlaybackStatus.loading,
+        similarStations: const <Station>[],
         clearPlaybackFailureMessage: true,
       ),
     );
+    _activeSimilarStationUuid = station.stationUuid;
+    unawaited(_loadSimilarStations(station));
 
     final result = await _playRadioStation(station);
     result.when(
@@ -198,17 +211,61 @@ class FavoritesCubit extends Cubit<FavoritesState> {
         return;
       }
 
+      final station = snapshot.station;
+      final shouldLoadSimilar =
+          station != null && _activeSimilarStationUuid != station.stationUuid;
+
+      if (station == null) {
+        _activeSimilarStationUuid = null;
+      } else if (shouldLoadSimilar) {
+        _activeSimilarStationUuid = station.stationUuid;
+        unawaited(_loadSimilarStations(station));
+      }
+
       emit(
         state.copyWith(
-          activeStation: snapshot.station,
-          clearActiveStation: snapshot.station == null,
+          activeStation: station,
+          clearActiveStation: station == null,
           playbackStatus: snapshot.status,
           volume: snapshot.volume,
+          similarStations:
+              station == null || shouldLoadSimilar ? const <Station>[] : null,
           playbackFailureMessage: snapshot.failureMessage,
           clearPlaybackFailureMessage: snapshot.failureMessage == null,
         ),
       );
     });
+  }
+
+  Future<void> _loadSimilarStations(Station station) async {
+    final tag = station.tags.firstOrNull;
+    if (tag == null) {
+      if (!isClosed) {
+        emit(state.copyWith(similarStations: const <Station>[]));
+      }
+      return;
+    }
+
+    final result = await _searchStations(
+      StationSearchQuery(tag: tag, limit: 8),
+    );
+
+    if (isClosed || _activeSimilarStationUuid != station.stationUuid) {
+      return;
+    }
+
+    result.when(
+      success:
+          (stations) => emit(
+            state.copyWith(
+              similarStations: stations
+                  .where((item) => item.stationUuid != station.stationUuid)
+                  .take(6)
+                  .toList(growable: false),
+            ),
+          ),
+      failure: (_) => emit(state.copyWith(similarStations: const <Station>[])),
+    );
   }
 
   @override

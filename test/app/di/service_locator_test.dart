@@ -1,6 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:radio_browser/src/app/di/service_locator.dart';
+import 'package:radio_browser/src/core/config/open_ai_config.dart';
 import 'package:radio_browser/src/core/result/result.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/repositories/station_ai_repository.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/repositories/voice_search_recorder_repository.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/rank_stations_with_ai.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/start_voice_search_recording.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/stop_voice_search_recording.dart';
+import 'package:radio_browser/src/features/ai_finder/domain/usecases/transcribe_station_search.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station.dart';
 import 'package:radio_browser/src/features/discover/domain/repositories/station_repository.dart';
 import 'package:radio_browser/src/features/discover/domain/usecases/get_genres.dart';
@@ -9,6 +16,7 @@ import 'package:radio_browser/src/features/discover/domain/usecases/get_stations
 import 'package:radio_browser/src/features/discover/domain/usecases/resolve_station_stream_url.dart';
 import 'package:radio_browser/src/features/discover/domain/usecases/search_stations.dart';
 import 'package:radio_browser/src/features/discover/presentation/cubit/discover_cubit.dart';
+import 'package:radio_browser/src/features/favorites/domain/entities/favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/repositories/favorites_repository.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/add_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/get_favorite_stations.dart';
@@ -27,6 +35,41 @@ import 'package:radio_browser/src/features/player/domain/usecases/stop_radio_sta
 import 'package:radio_browser/src/features/player/domain/usecases/watch_radio_playback.dart';
 
 import '../../helpers/hive_test_box.dart';
+
+class FakeStationAiRepository implements StationAiRepository {
+  @override
+  bool get isEnabled => false;
+
+  @override
+  Future<Result<List<String>>> rankStationUuids({
+    required String prompt,
+    required List<Station> candidateStations,
+    required List<FavoriteStation> favoriteStations,
+  }) async {
+    return const Success<List<String>>([]);
+  }
+
+  @override
+  Future<Result<String>> transcribeAudio(String filePath) async {
+    return const Success<String>('jazz');
+  }
+}
+
+class FakeVoiceSearchRecorderRepository
+    implements VoiceSearchRecorderRepository {
+  @override
+  Future<Result<void>> cancel() async => const Success<void>(null);
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<Result<void>> start() async => const Success<void>(null);
+
+  @override
+  Future<Result<String?>> stop() async =>
+      const Success<String?>('/tmp/search.m4a');
+}
 
 class FakeRadioPlayerRepository implements RadioPlayerRepository {
   @override
@@ -79,6 +122,8 @@ void main() {
     await configureDependencies(
       favoriteStationsBox: hive.favoriteStationsBox,
       radioPlayerRepository: FakeRadioPlayerRepository(),
+      stationAiRepository: FakeStationAiRepository(),
+      voiceSearchRecorderRepository: FakeVoiceSearchRecorderRepository(),
     );
 
     expect(getIt<StationRepository>(), isA<StationRepository>());
@@ -88,6 +133,20 @@ void main() {
     expect(getIt<ResolveStationStreamUrl>(), isA<ResolveStationStreamUrl>());
     expect(getIt<GetStationsByUuids>(), isA<GetStationsByUuids>());
     expect(getIt<DiscoverCubit>(), isA<DiscoverCubit>());
+
+    expect(getIt<OpenAiConfig>(), isA<OpenAiConfig>());
+    expect(getIt<StationAiRepository>(), isA<StationAiRepository>());
+    expect(getIt<RankStationsWithAi>(), isA<RankStationsWithAi>());
+    expect(getIt<TranscribeStationSearch>(), isA<TranscribeStationSearch>());
+    expect(
+      getIt<VoiceSearchRecorderRepository>(),
+      isA<VoiceSearchRecorderRepository>(),
+    );
+    expect(
+      getIt<StartVoiceSearchRecording>(),
+      isA<StartVoiceSearchRecording>(),
+    );
+    expect(getIt<StopVoiceSearchRecording>(), isA<StopVoiceSearchRecording>());
 
     expect(getIt<FavoritesRepository>(), isA<FavoritesRepository>());
     expect(getIt<GetFavoriteStations>(), isA<GetFavoriteStations>());

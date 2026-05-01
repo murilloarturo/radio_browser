@@ -3,10 +3,21 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../core/config/open_ai_config.dart';
 import '../../core/config/radio_browser_config.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/open_ai_dio_client.dart';
 import '../../core/network/radio_browser_api_client.dart';
 import '../../core/network/radio_browser_server_resolver.dart';
+import '../../features/ai_finder/data/datasources/open_ai_remote_data_source.dart';
+import '../../features/ai_finder/data/repositories/open_ai_station_ai_repository.dart';
+import '../../features/ai_finder/data/repositories/record_voice_search_recorder_repository.dart';
+import '../../features/ai_finder/domain/repositories/station_ai_repository.dart';
+import '../../features/ai_finder/domain/repositories/voice_search_recorder_repository.dart';
+import '../../features/ai_finder/domain/usecases/rank_stations_with_ai.dart';
+import '../../features/ai_finder/domain/usecases/start_voice_search_recording.dart';
+import '../../features/ai_finder/domain/usecases/stop_voice_search_recording.dart';
+import '../../features/ai_finder/domain/usecases/transcribe_station_search.dart';
 import '../../features/discover/data/datasources/radio_browser_remote_data_source.dart';
 import '../../features/discover/data/repositories/radio_browser_station_repository.dart';
 import '../../features/discover/domain/repositories/station_repository.dart';
@@ -42,6 +53,8 @@ Future<void> configureDependencies({
   GetIt? serviceLocator,
   Box<FavoriteStationHiveModel>? favoriteStationsBox,
   RadioPlayerRepository? radioPlayerRepository,
+  StationAiRepository? stationAiRepository,
+  VoiceSearchRecorderRepository? voiceSearchRecorderRepository,
 }) async {
   final sl = serviceLocator ?? getIt;
 
@@ -49,6 +62,10 @@ Future<void> configureDependencies({
     sl.registerLazySingleton<RadioBrowserConfig>(
       () => RadioBrowserConfig.production,
     );
+  }
+
+  if (!sl.isRegistered<OpenAiConfig>()) {
+    sl.registerLazySingleton<OpenAiConfig>(() => OpenAiConfig.production);
   }
 
   if (!sl.isRegistered<Dio>()) {
@@ -99,6 +116,58 @@ Future<void> configureDependencies({
 
   if (!sl.isRegistered<GetStationsByUuids>()) {
     sl.registerFactory<GetStationsByUuids>(() => GetStationsByUuids(sl()));
+  }
+
+  if (!sl.isRegistered<OpenAiRemoteDataSource>()) {
+    sl.registerLazySingleton<OpenAiRemoteDataSource>(
+      () => DioOpenAiRemoteDataSource(dio: createOpenAiDio(sl()), config: sl()),
+    );
+  }
+
+  if (stationAiRepository != null && !sl.isRegistered<StationAiRepository>()) {
+    sl.registerLazySingleton<StationAiRepository>(() => stationAiRepository);
+  }
+
+  if (!sl.isRegistered<StationAiRepository>()) {
+    sl.registerLazySingleton<StationAiRepository>(
+      () => OpenAiStationAiRepository(config: sl(), remoteDataSource: sl()),
+    );
+  }
+
+  if (!sl.isRegistered<RankStationsWithAi>()) {
+    sl.registerFactory<RankStationsWithAi>(() => RankStationsWithAi(sl()));
+  }
+
+  if (!sl.isRegistered<TranscribeStationSearch>()) {
+    sl.registerFactory<TranscribeStationSearch>(
+      () => TranscribeStationSearch(sl()),
+    );
+  }
+
+  if (voiceSearchRecorderRepository != null &&
+      !sl.isRegistered<VoiceSearchRecorderRepository>()) {
+    sl.registerLazySingleton<VoiceSearchRecorderRepository>(
+      () => voiceSearchRecorderRepository,
+    );
+  }
+
+  if (!sl.isRegistered<VoiceSearchRecorderRepository>()) {
+    sl.registerLazySingleton<VoiceSearchRecorderRepository>(
+      RecordVoiceSearchRecorderRepository.new,
+      dispose: (repository) => repository.dispose(),
+    );
+  }
+
+  if (!sl.isRegistered<StartVoiceSearchRecording>()) {
+    sl.registerFactory<StartVoiceSearchRecording>(
+      () => StartVoiceSearchRecording(sl()),
+    );
+  }
+
+  if (!sl.isRegistered<StopVoiceSearchRecording>()) {
+    sl.registerFactory<StopVoiceSearchRecording>(
+      () => StopVoiceSearchRecording(sl()),
+    );
   }
 
   final favoriteBox = favoriteStationsBox ?? await _openFavoriteStationsBox();
@@ -202,6 +271,10 @@ Future<void> configureDependencies({
         getStations: sl(),
         searchStations: sl(),
         getGenres: sl(),
+        rankStationsWithAi: sl(),
+        startVoiceSearchRecording: sl(),
+        stopVoiceSearchRecording: sl(),
+        transcribeStationSearch: sl(),
         watchFavoriteStations: sl(),
         toggleFavoriteStation: sl(),
         playRadioStation: sl(),
@@ -219,6 +292,7 @@ Future<void> configureDependencies({
       () => FavoritesCubit(
         watchFavoriteStations: sl(),
         toggleFavoriteStation: sl(),
+        searchStations: sl(),
         playRadioStation: sl(),
         pauseRadioStation: sl(),
         resumeRadioStation: sl(),

@@ -6,7 +6,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/station_artwork.dart';
 import '../../domain/entities/station.dart';
-import 'favorite_icon_button.dart';
+import 'favorite_pill_button.dart';
 import 'play_station_button.dart';
 
 class RecommendedStationCard extends StatelessWidget {
@@ -49,6 +49,13 @@ class RecommendedStationCard extends StatelessWidget {
             color: AppColors.surface,
             border: Border.all(color: AppColors.line),
             borderRadius: BorderRadius.circular(AppRadii.sm),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.04),
+                offset: const Offset(0, 8),
+                blurRadius: 20,
+              ),
+            ],
           ),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -74,10 +81,6 @@ class RecommendedStationCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          FavoriteIconButton(
-                            isFavorite: isFavorite,
-                            onPressed: onFavoriteToggle,
-                          ),
                         ],
                       ),
                       Text(
@@ -98,14 +101,23 @@ class RecommendedStationCard extends StatelessWidget {
                           fontStyle: FontStyle.italic,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: PlayStationButton(
-                          label: Localizable.play,
-                          isLoading: isLoading,
-                          onPressed: onPlay,
-                        ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: FavoritePillButton(
+                              isFavorite: isFavorite,
+                              onPressed: onFavoriteToggle,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          PlayStationButton(
+                            label: Localizable.play,
+                            isLoading: isLoading,
+                            onPressed: onPlay,
+                          ),
+                        ],
                       ),
                     ],
                   ),

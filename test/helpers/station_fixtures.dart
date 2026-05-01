@@ -3,6 +3,7 @@ import 'package:radio_browser/src/features/discover/domain/entities/station.dart
 Station stationFixture({
   String stationUuid = 'station-1',
   String name = 'Radio Paradise',
+  List<String> tags = const <String>['eclectic', 'rock', 'chill'],
 }) {
   return Station(
     stationUuid: stationUuid,
@@ -12,7 +13,7 @@ Station stationFixture({
     faviconUrl: 'https://example.com/favicon.png',
     countryCode: 'US',
     language: 'English',
-    tags: const <String>['eclectic', 'rock', 'chill'],
+    tags: tags,
     codec: 'AAC',
     bitrate: 128,
     votes: 100,

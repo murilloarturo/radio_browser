@@ -2,6 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:radio_browser/src/core/result/result.dart';
+import 'package:radio_browser/src/features/discover/domain/entities/station.dart';
+import 'package:radio_browser/src/features/discover/domain/entities/station_search_query.dart';
+import 'package:radio_browser/src/features/discover/domain/usecases/search_stations.dart';
 import 'package:radio_browser/src/features/favorites/domain/entities/favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/toggle_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/watch_favorite_stations.dart';
@@ -22,6 +25,8 @@ class MockWatchFavoriteStations extends Mock implements WatchFavoriteStations {}
 
 class MockToggleFavoriteStation extends Mock implements ToggleFavoriteStation {}
 
+class MockSearchStations extends Mock implements SearchStations {}
+
 class MockPlayRadioStation extends Mock implements PlayRadioStation {}
 
 class MockPauseRadioStation extends Mock implements PauseRadioStation {}
@@ -37,6 +42,7 @@ class MockWatchRadioPlayback extends Mock implements WatchRadioPlayback {}
 void main() {
   late MockWatchFavoriteStations watchFavoriteStations;
   late MockToggleFavoriteStation toggleFavoriteStation;
+  late MockSearchStations searchStations;
   late MockPlayRadioStation playRadioStation;
   late MockPauseRadioStation pauseRadioStation;
   late MockResumeRadioStation resumeRadioStation;
@@ -49,6 +55,7 @@ void main() {
     return FavoritesCubit(
       watchFavoriteStations: watchFavoriteStations,
       toggleFavoriteStation: toggleFavoriteStation,
+      searchStations: searchStations,
       playRadioStation: playRadioStation,
       pauseRadioStation: pauseRadioStation,
       resumeRadioStation: resumeRadioStation,
@@ -61,11 +68,13 @@ void main() {
   setUpAll(() {
     registerFallbackValue(favoriteStationFixture());
     registerFallbackValue(stationFixture());
+    registerFallbackValue(const StationSearchQuery());
   });
 
   setUp(() {
     watchFavoriteStations = MockWatchFavoriteStations();
     toggleFavoriteStation = MockToggleFavoriteStation();
+    searchStations = MockSearchStations();
     playRadioStation = MockPlayRadioStation();
     pauseRadioStation = MockPauseRadioStation();
     resumeRadioStation = MockResumeRadioStation();
@@ -85,6 +94,9 @@ void main() {
     when(
       () => playRadioStation(any()),
     ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => searchStations(any()),
+    ).thenAnswer((_) async => const Success<List<Station>>(<Station>[]));
     when(
       () => toggleFavoriteStation(any()),
     ).thenAnswer((_) async => const Success<bool>(false));
@@ -127,6 +139,21 @@ void main() {
   );
 
   blocTest<FavoritesCubit, FavoritesState>(
+    'plays a similar station',
+    build: buildCubit,
+    act:
+        (cubit) => cubit.playSimilarStation(
+          stationFixture(stationUuid: 'similar-station'),
+        ),
+    verify: (cubit) {
+      final captured = verify(() => playRadioStation(captureAny())).captured;
+      expect(captured.single.stationUuid, 'similar-station');
+      expect(cubit.state.activeStation?.stationUuid, 'similar-station');
+      expect(cubit.state.playbackStatus, RadioPlaybackStatus.loading);
+    },
+  );
+
+  blocTest<FavoritesCubit, FavoritesState>(
     'removes a favorite through the toggle use case',
     build: buildCubit,
     act: (cubit) => cubit.removeFavorite(favoriteStation),
@@ -150,6 +177,40 @@ void main() {
     act: (cubit) => cubit.stopPlayback(),
     verify: (_) {
       verify(() => stopRadioStation()).called(1);
+    },
+  );
+
+  blocTest<FavoritesCubit, FavoritesState>(
+    'loads similar stations when playback changes',
+    build: () {
+      when(() => watchRadioPlayback()).thenAnswer(
+        (_) => Stream<RadioPlaybackSnapshot>.value(
+          RadioPlaybackSnapshot(
+            status: RadioPlaybackStatus.playing,
+            station: stationFixture(
+              stationUuid: 'active-station',
+              tags: const ['jazz'],
+            ),
+          ),
+        ),
+      );
+      when(() => searchStations(any())).thenAnswer(
+        (_) async => Success<List<Station>>(<Station>[
+          stationFixture(stationUuid: 'active-station', tags: const ['jazz']),
+          stationFixture(stationUuid: 'similar-station', name: 'Jazz Nearby'),
+        ]),
+      );
+      return buildCubit();
+    },
+    act: (cubit) async {
+      cubit.load();
+      await pumpEventQueue(times: 2);
+    },
+    verify: (cubit) {
+      expect(cubit.state.similarStations, hasLength(1));
+      expect(cubit.state.similarStations.single.stationUuid, 'similar-station');
+      final captured = verify(() => searchStations(captureAny())).captured;
+      expect(captured.single, const StationSearchQuery(tag: 'jazz', limit: 8));
     },
   );
 }

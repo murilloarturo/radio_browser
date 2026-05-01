@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -21,9 +20,12 @@ class FullPlayerPage extends StatelessWidget {
     required this.similarStations,
     required this.artworkHeroTag,
     required this.onPlaybackToggle,
-    required this.onStop,
     required this.onFavoriteToggle,
     required this.onVolumeChanged,
+    required this.onSeeAllSimilar,
+    required this.onSimilarStationSelected,
+    this.onPreviousStation,
+    this.onNextStation,
     super.key,
   });
 
@@ -34,79 +36,106 @@ class FullPlayerPage extends StatelessWidget {
   final List<Station> similarStations;
   final Object artworkHeroTag;
   final VoidCallback onPlaybackToggle;
-  final VoidCallback onStop;
   final VoidCallback onFavoriteToggle;
   final ValueChanged<double> onVolumeChanged;
+  final VoidCallback onSeeAllSimilar;
+  final ValueChanged<Station> onSimilarStationSelected;
+  final VoidCallback? onPreviousStation;
+  final VoidCallback? onNextStation;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final visibleSimilarStations = similarStations
+        .where((item) => item.stationUuid != station.stationUuid)
+        .take(6)
+        .toList(growable: false);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xl,
-          ),
+        child: Column(
           children: [
-            _PlayerHeader(onClose: () => Navigator.of(context).maybePop()),
-            const SizedBox(height: AppSpacing.xl),
-            Center(
-              child: _ParallaxArtwork(
-                station: station,
-                heroTag: artworkHeroTag,
+            _PlayerHeader(onCollapse: () => Navigator.of(context).maybePop()),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final artworkSize =
+                      (constraints.maxHeight * 0.28)
+                          .clamp(156.0, 220.0)
+                          .toDouble();
+
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                    ),
+                    children: [
+                      Center(
+                        child: _ParallaxArtwork(
+                          station: station,
+                          heroTag: artworkHeroTag,
+                          isFavorite: isFavorite,
+                          onFavoriteToggle: onFavoriteToggle,
+                          size: artworkSize,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        station.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        _locationLine(station),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      _StationTags(station: station),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        _streamLine(station),
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _VolumeControl(
+                        volume: volume,
+                        onChanged: onVolumeChanged,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _PlaybackControls(
+                        playbackStatus: playbackStatus,
+                        onPlaybackToggle: onPlaybackToggle,
+                        onPreviousStation: onPreviousStation,
+                        onNextStation: onNextStation,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _SimilarStations(
+                        stations: visibleSimilarStations,
+                        onSeeAll: onSeeAllSimilar,
+                        onStationSelected: onSimilarStationSelected,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              station.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.headlineMedium?.copyWith(
-                color: AppColors.ink,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              _locationLine(station),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.titleMedium?.copyWith(color: AppColors.inkMuted),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _StationTags(station: station),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              _streamLine(station),
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            AnimatedAudioWaveform(
-              isActive: playbackStatus == RadioPlaybackStatus.playing,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _PlaybackControls(
-              playbackStatus: playbackStatus,
-              onPlaybackToggle: onPlaybackToggle,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _ActionButtons(
-              isFavorite: isFavorite,
-              onStop: onStop,
-              onFavoriteToggle: onFavoriteToggle,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _VolumeControl(volume: volume, onChanged: onVolumeChanged),
-            const SizedBox(height: AppSpacing.xl),
-            _SimilarStations(stations: similarStations),
           ],
         ),
       ),
@@ -132,47 +161,95 @@ class FullPlayerPage extends StatelessWidget {
 }
 
 class _PlayerHeader extends StatelessWidget {
-  const _PlayerHeader({required this.onClose});
+  const _PlayerHeader({required this.onCollapse});
 
-  final VoidCallback onClose;
+  final VoidCallback onCollapse;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          tooltip: Localizable.collapsePlayer.text,
-          onPressed: onClose,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        ),
-        Expanded(
-          child: Text(
-            Localizable.nowPlayingTitle.text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.ink,
-              fontWeight: FontWeight.w800,
-            ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.softLine)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: Localizable.collapsePlayer.text,
+                onPressed: onCollapse,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              ),
+              Expanded(
+                child: Text(
+                  Localizable.nowPlayingTitle.text,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
           ),
         ),
-        IconButton(
-          tooltip: Localizable.playerOptions.text,
-          onPressed: () {},
-          icon: const Icon(Icons.more_vert_rounded),
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _ParallaxArtwork extends StatefulWidget {
-  const _ParallaxArtwork({required this.station, required this.heroTag});
+  const _ParallaxArtwork({
+    required this.station,
+    required this.heroTag,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+    required this.size,
+  });
 
   final Station station;
   final Object heroTag;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final double size;
 
   @override
   State<_ParallaxArtwork> createState() => _ParallaxArtworkState();
+}
+
+class _FavoriteArtworkButton extends StatelessWidget {
+  const _FavoriteArtworkButton({
+    required this.isFavorite,
+    required this.onPressed,
+  });
+
+  final bool isFavorite;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isFavorite ? AppColors.brand : AppColors.surface,
+      shape: const CircleBorder(),
+      elevation: 8,
+      shadowColor: AppColors.ink.withValues(alpha: 0.18),
+      child: IconButton(
+        tooltip:
+            isFavorite
+                ? Localizable.removeFavorite.text
+                : Localizable.addFavorite.text,
+        onPressed: onPressed,
+        icon: Icon(
+          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          color: isFavorite ? AppColors.surface : AppColors.brand,
+        ),
+      ),
+    );
+  }
 }
 
 class _ParallaxArtworkState extends State<_ParallaxArtwork> {
@@ -230,10 +307,23 @@ class _ParallaxArtworkState extends State<_ParallaxArtwork> {
           ),
         ],
       ),
-      child: StationArtwork(
-        imageUrl: widget.station.faviconUrl,
-        size: 220,
-        heroTag: widget.heroTag,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          StationArtwork(
+            imageUrl: widget.station.faviconUrl,
+            size: widget.size,
+            heroTag: widget.heroTag,
+          ),
+          Positioned(
+            top: AppSpacing.sm,
+            right: AppSpacing.sm,
+            child: _FavoriteArtworkButton(
+              isFavorite: widget.isFavorite,
+              onPressed: widget.onFavoriteToggle,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -268,120 +358,18 @@ class _StationTags extends StatelessWidget {
   }
 }
 
-class AnimatedAudioWaveform extends StatefulWidget {
-  const AnimatedAudioWaveform({required this.isActive, super.key});
-
-  final bool isActive;
-
-  @override
-  State<AnimatedAudioWaveform> createState() => _AnimatedAudioWaveformState();
-}
-
-class _AnimatedAudioWaveformState extends State<AnimatedAudioWaveform>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    _syncAnimation();
-  }
-
-  @override
-  void didUpdateWidget(covariant AnimatedAudioWaveform oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isActive != widget.isActive) {
-      _syncAnimation();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _syncAnimation() {
-    if (widget.isActive) {
-      _controller.repeat();
-      return;
-    }
-
-    _controller.stop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 68,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          return CustomPaint(
-            painter: _WaveformPainter(progress: _controller.value),
-            child: const SizedBox.expand(),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _WaveformPainter extends CustomPainter {
-  const _WaveformPainter({required this.progress});
-
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const barCount = 72;
-    final centerY = size.height / 2;
-    final gap = size.width / barCount;
-    final darkPaint =
-        Paint()
-          ..color = AppColors.ink
-          ..strokeWidth = 2
-          ..strokeCap = StrokeCap.round;
-    final lightPaint =
-        Paint()
-          ..color = AppColors.line
-          ..strokeWidth = 2
-          ..strokeCap = StrokeCap.round;
-
-    for (var index = 0; index < barCount; index++) {
-      final x = index * gap + gap / 2;
-      final wave = math.sin(index * 0.42 + progress * math.pi * 2);
-      final accent = math.sin(index * 0.17 + progress * math.pi * 4);
-      final height = 10 + (wave.abs() * 26) + (accent.abs() * 10);
-      final paint =
-          index < barCount * (0.42 + progress * 0.16) ? darkPaint : lightPaint;
-
-      canvas.drawLine(
-        Offset(x, centerY - height / 2),
-        Offset(x, centerY + height / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
-}
-
 class _PlaybackControls extends StatelessWidget {
   const _PlaybackControls({
     required this.playbackStatus,
     required this.onPlaybackToggle,
+    required this.onPreviousStation,
+    required this.onNextStation,
   });
 
   final RadioPlaybackStatus playbackStatus;
   final VoidCallback onPlaybackToggle;
+  final VoidCallback? onPreviousStation;
+  final VoidCallback? onNextStation;
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +381,7 @@ class _PlaybackControls extends StatelessWidget {
       children: [
         IconButton(
           tooltip: Localizable.previousStation.text,
-          onPressed: null,
+          onPressed: isBusy ? null : onPreviousStation,
           icon: const Icon(Icons.skip_previous_rounded),
         ),
         const SizedBox(width: AppSpacing.xl),
@@ -422,47 +410,8 @@ class _PlaybackControls extends StatelessWidget {
         const SizedBox(width: AppSpacing.xl),
         IconButton(
           tooltip: Localizable.nextStation.text,
-          onPressed: null,
+          onPressed: isBusy ? null : onNextStation,
           icon: const Icon(Icons.skip_next_rounded),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons({
-    required this.isFavorite,
-    required this.onStop,
-    required this.onFavoriteToggle,
-  });
-
-  final bool isFavorite;
-  final VoidCallback onStop;
-  final VoidCallback onFavoriteToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: onStop,
-            icon: const Icon(Icons.stop_rounded),
-            label: Text(Localizable.stop.text),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: onFavoriteToggle,
-            icon: Icon(
-              isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-            ),
-            label: Text(Localizable.favorite.text),
-          ),
         ),
       ],
     );
@@ -505,9 +454,15 @@ class _VolumeControl extends StatelessWidget {
 }
 
 class _SimilarStations extends StatelessWidget {
-  const _SimilarStations({required this.stations});
+  const _SimilarStations({
+    required this.stations,
+    required this.onSeeAll,
+    required this.onStationSelected,
+  });
 
   final List<Station> stations;
+  final VoidCallback onSeeAll;
+  final ValueChanged<Station> onStationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -520,15 +475,32 @@ class _SimilarStations extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                Localizable.similarStations.text,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      Localizable.similarStations.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.inkMuted,
+                    size: 22,
+                  ),
+                ],
               ),
             ),
-            TextButton(onPressed: () {}, child: Text(Localizable.seeAll.text)),
+            TextButton(
+              onPressed: onSeeAll,
+              child: Text(Localizable.seeAll.text),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -539,7 +511,11 @@ class _SimilarStations extends StatelessWidget {
             itemCount: stations.take(6).length,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
             itemBuilder: (context, index) {
-              return _SimilarStationTile(station: stations[index]);
+              final station = stations[index];
+              return _SimilarStationTile(
+                station: station,
+                onTap: () => onStationSelected(station),
+              );
             },
           ),
         ),
@@ -549,41 +525,49 @@ class _SimilarStations extends StatelessWidget {
 }
 
 class _SimilarStationTile extends StatelessWidget {
-  const _SimilarStationTile({required this.station});
+  const _SimilarStationTile({required this.station, required this.onTap});
 
   final Station station;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 104,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.sm),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.ink.withValues(alpha: 0.08),
-                  offset: const Offset(0, 8),
-                  blurRadius: 18,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        onTap: onTap,
+        child: SizedBox(
+          width: 104,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.ink.withValues(alpha: 0.08),
+                      offset: const Offset(0, 8),
+                      blurRadius: 18,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: StationArtwork(imageUrl: station.faviconUrl, size: 92),
+                child: StationArtwork(imageUrl: station.faviconUrl, size: 92),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                station.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            station.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.ink,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

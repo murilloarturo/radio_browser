@@ -4,10 +4,18 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 
 class AppEmptyState extends StatelessWidget {
-  const AppEmptyState({required this.title, required this.message, super.key});
+  const AppEmptyState({
+    required this.title,
+    required this.message,
+    this.assetPath,
+    this.assetSemanticLabel,
+    super.key,
+  });
 
   final String title;
   final String message;
+  final String? assetPath;
+  final String? assetSemanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +27,20 @@ class AppEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.radio_outlined,
-              size: 40,
-              color: AppColors.inkMuted,
-            ),
-            const SizedBox(height: AppSpacing.md),
+            if (assetPath == null)
+              const Icon(
+                Icons.radio_outlined,
+                size: 40,
+                color: AppColors.inkMuted,
+              )
+            else
+              Image.asset(
+                assetPath!,
+                height: 220,
+                fit: BoxFit.contain,
+                semanticLabel: assetSemanticLabel ?? title,
+              ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               title,
               textAlign: TextAlign.center,

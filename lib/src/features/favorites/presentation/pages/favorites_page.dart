@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/assets/app_assets.dart';
 import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_block.dart';
+import '../../../../core/widgets/persistent_error_snack_bar.dart';
 import '../../../discover/presentation/widgets/mini_player_bar.dart';
 import '../../../discover/presentation/widgets/recommended_station_card.dart';
 import '../../../player/presentation/pages/full_player_page.dart';
@@ -19,7 +21,9 @@ import '../mappers/favorite_station_mapper.dart';
 const _favoritesArtworkHeroTag = 'favorites-player-artwork';
 
 class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key});
+  const FavoritesPage({required this.onDiscoverRequested, super.key});
+
+  final VoidCallback onDiscoverRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +34,13 @@ class FavoritesPage extends StatelessWidget {
                   current.playbackFailureMessage &&
               current.playbackFailureMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              state.playbackFailureMessage ?? Localizable.playbackFailed.text,
-            ),
+        final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+        messenger.showSnackBar(
+          persistentErrorSnackBar(
+            context: context,
+            message:
+                state.playbackFailureMessage ?? Localizable.playbackFailed.text,
+            closeTooltip: Localizable.dismissMessage.text,
           ),
         );
       },
@@ -47,22 +53,13 @@ class FavoritesPage extends StatelessWidget {
                 MiniPlayerBar(
                   station: state.activeStation!,
                   playbackStatus: state.playbackStatus,
-                  isFavorite: _findActiveFavorite(state) != null,
                   onPlaybackToggle:
                       context.read<FavoritesCubit>().toggleMiniPlayerPlayback,
-                  onFavoriteToggle: () {
-                    final favoriteStation = _findActiveFavorite(state);
-                    if (favoriteStation != null) {
-                      context.read<FavoritesCubit>().removeFavorite(
-                        favoriteStation,
-                      );
-                      return;
-                    }
-                    context.read<FavoritesCubit>().toggleFavorite(
-                      state.activeStation!,
-                    );
-                  },
-                  onOpenPlayer: () => _openFavoritesPlayer(context),
+                  onOpenPlayer:
+                      () => _openFavoritesPlayer(
+                        context,
+                        onDiscoverRequested: onDiscoverRequested,
+                      ),
                   artworkHeroTag: _favoritesArtworkHeroTag,
                 ),
             ],
@@ -73,20 +70,27 @@ class FavoritesPage extends StatelessWidget {
   }
 }
 
-void _openFavoritesPlayer(BuildContext context) {
+void _openFavoritesPlayer(
+  BuildContext context, {
+  required VoidCallback onDiscoverRequested,
+}) {
   final cubit = context.read<FavoritesCubit>();
   Navigator.of(context).push(
     buildFullPlayerRoute(
       child: BlocProvider.value(
         value: cubit,
-        child: const _FavoritesFullPlayerPage(),
+        child: _FavoritesFullPlayerPage(
+          onDiscoverRequested: onDiscoverRequested,
+        ),
       ),
     ),
   );
 }
 
 class _FavoritesFullPlayerPage extends StatelessWidget {
-  const _FavoritesFullPlayerPage();
+  const _FavoritesFullPlayerPage({required this.onDiscoverRequested});
+
+  final VoidCallback onDiscoverRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -103,11 +107,15 @@ class _FavoritesFullPlayerPage extends StatelessWidget {
         }
 
         final favoriteStation = _findActiveFavorite(state);
-        final similarStations = state.stations
-            .map((item) => item.toStation())
+        final similarStations = state.similarStations
             .where((item) => item.stationUuid != station.stationUuid)
             .take(6)
             .toList(growable: false);
+        final previousStation =
+            similarStations.isEmpty ? null : similarStations.last;
+        final nextStation =
+            similarStations.isEmpty ? null : similarStations.first;
+        final cubit = context.read<FavoritesCubit>();
 
         return FullPlayerPage(
           station: station,
@@ -116,20 +124,28 @@ class _FavoritesFullPlayerPage extends StatelessWidget {
           isFavorite: favoriteStation != null,
           similarStations: similarStations,
           artworkHeroTag: _favoritesArtworkHeroTag,
-          onPlaybackToggle:
-              context.read<FavoritesCubit>().toggleMiniPlayerPlayback,
-          onStop: () async {
-            await context.read<FavoritesCubit>().stopPlayback();
-          },
+          onPlaybackToggle: cubit.toggleMiniPlayerPlayback,
           onFavoriteToggle: () {
             if (favoriteStation != null) {
-              context.read<FavoritesCubit>().removeFavorite(favoriteStation);
+              cubit.removeFavorite(favoriteStation);
               return;
             }
-            context.read<FavoritesCubit>().toggleFavorite(station);
+            cubit.toggleFavorite(station);
           },
-          onVolumeChanged:
-              (volume) => context.read<FavoritesCubit>().setVolume(volume),
+          onVolumeChanged: cubit.setVolume,
+          onSeeAllSimilar: () {
+            Navigator.of(context).maybePop();
+            onDiscoverRequested();
+          },
+          onSimilarStationSelected: cubit.playSimilarStation,
+          onPreviousStation:
+              previousStation == null
+                  ? null
+                  : () => cubit.playSimilarStation(previousStation),
+          onNextStation:
+              nextStation == null
+                  ? null
+                  : () => cubit.playSimilarStation(nextStation),
         );
       },
     );
@@ -185,6 +201,8 @@ class _FavoritesBody extends StatelessWidget {
             child: AppEmptyState(
               title: Localizable.noFavoritesTitle.text,
               message: Localizable.noFavoritesMessage.text,
+              assetPath: AppAssets.favoritesEmptyIllustration,
+              assetSemanticLabel: Localizable.noFavoritesTitle.text,
             ),
           ),
         ],

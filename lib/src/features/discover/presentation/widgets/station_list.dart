@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/station.dart';
 import 'station_list_item.dart';
@@ -28,6 +29,7 @@ class StationList extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: Column(
         children: [

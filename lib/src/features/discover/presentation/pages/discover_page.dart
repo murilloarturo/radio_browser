@@ -7,8 +7,11 @@ import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_offline_state.dart';
+import '../../../../core/widgets/persistent_error_snack_bar.dart';
+import '../../domain/entities/station.dart';
 import '../cubit/discover_cubit.dart';
 import '../cubit/discover_state.dart';
+import '../widgets/ai_recommendation_empty_card.dart';
 import '../widgets/discover_filter_chips.dart';
 import '../widgets/discover_header.dart';
 import '../widgets/discover_loading_view.dart';
@@ -30,14 +33,21 @@ class DiscoverPage extends StatelessWidget {
       listenWhen:
           (previous, current) =>
               previous.playbackFailureMessage !=
-                  current.playbackFailureMessage &&
-              current.playbackFailureMessage != null,
+                      current.playbackFailureMessage &&
+                  current.playbackFailureMessage != null ||
+              previous.aiFailureMessage != current.aiFailureMessage &&
+                  current.aiFailureMessage != null,
       listener: (context, state) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              state.playbackFailureMessage ?? Localizable.playbackFailed.text,
-            ),
+        final message =
+            state.playbackFailureMessage ??
+            state.aiFailureMessage ??
+            Localizable.playbackFailed.text;
+        final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+        messenger.showSnackBar(
+          persistentErrorSnackBar(
+            context: context,
+            message: message,
+            closeTooltip: Localizable.dismissMessage.text,
           ),
         );
       },
@@ -56,15 +66,8 @@ class DiscoverPage extends StatelessWidget {
                 MiniPlayerBar(
                   station: state.activeStation!,
                   playbackStatus: state.playbackStatus,
-                  isFavorite: context.read<DiscoverCubit>().isFavorite(
-                    state.activeStation!.stationUuid,
-                  ),
                   onPlaybackToggle:
                       context.read<DiscoverCubit>().toggleMiniPlayerPlayback,
-                  onFavoriteToggle:
-                      () => context.read<DiscoverCubit>().toggleFavorite(
-                        state.activeStation!,
-                      ),
                   onOpenPlayer: () => _openDiscoverPlayer(context),
                   artworkHeroTag: _discoverArtworkHeroTag,
                 ),
@@ -105,33 +108,91 @@ class _DiscoverFullPlayerPage extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final similarStations = state.stations
+        final stationCycle = _uniqueStations(state.stations);
+        final similarStations = stationCycle
             .where((item) => item.stationUuid != station.stationUuid)
             .take(6)
             .toList(growable: false);
+        final previousStation = _adjacentStation(
+          activeStation: station,
+          stations: stationCycle,
+          step: -1,
+        );
+        final nextStation = _adjacentStation(
+          activeStation: station,
+          stations: stationCycle,
+          step: 1,
+        );
+        final cubit = context.read<DiscoverCubit>();
 
         return FullPlayerPage(
           station: station,
           playbackStatus: state.playbackStatus,
           volume: state.volume,
-          isFavorite: context.read<DiscoverCubit>().isFavorite(
-            station.stationUuid,
-          ),
+          isFavorite: cubit.isFavorite(station.stationUuid),
           similarStations: similarStations,
           artworkHeroTag: _discoverArtworkHeroTag,
-          onPlaybackToggle:
-              context.read<DiscoverCubit>().toggleMiniPlayerPlayback,
-          onStop: () async {
-            await context.read<DiscoverCubit>().stopPlayback();
-          },
-          onFavoriteToggle:
-              () => context.read<DiscoverCubit>().toggleFavorite(station),
-          onVolumeChanged:
-              (volume) => context.read<DiscoverCubit>().setVolume(volume),
+          onPlaybackToggle: cubit.toggleMiniPlayerPlayback,
+          onFavoriteToggle: () => cubit.toggleFavorite(station),
+          onVolumeChanged: cubit.setVolume,
+          onSeeAllSimilar: () => Navigator.of(context).maybePop(),
+          onSimilarStationSelected: cubit.playStation,
+          onPreviousStation:
+              previousStation == null
+                  ? null
+                  : () => cubit.playStation(previousStation),
+          onNextStation:
+              nextStation == null ? null : () => cubit.playStation(nextStation),
         );
       },
     );
   }
+}
+
+List<Station> _uniqueStations(List<Station> stations) {
+  final seenStationUuids = <String>{};
+  return [
+    for (final station in stations)
+      if (seenStationUuids.add(station.stationUuid)) station,
+  ];
+}
+
+Station? _adjacentStation({
+  required Station activeStation,
+  required List<Station> stations,
+  required int step,
+}) {
+  if (stations.length < 2) {
+    return null;
+  }
+
+  final activeIndex = stations.indexWhere(
+    (station) => station.stationUuid == activeStation.stationUuid,
+  );
+  if (activeIndex == -1) {
+    return step > 0
+        ? stations.firstWhere(
+          (station) => station.stationUuid != activeStation.stationUuid,
+        )
+        : stations.lastWhere(
+          (station) => station.stationUuid != activeStation.stationUuid,
+        );
+  }
+
+  var nextIndex = activeIndex;
+  for (var attempt = 0; attempt < stations.length - 1; attempt++) {
+    nextIndex = (nextIndex + step) % stations.length;
+    if (nextIndex < 0) {
+      nextIndex += stations.length;
+    }
+
+    final nextStation = stations[nextIndex];
+    if (nextStation.stationUuid != activeStation.stationUuid) {
+      return nextStation;
+    }
+  }
+
+  return null;
 }
 
 class _DiscoverBody extends StatelessWidget {
@@ -154,6 +215,9 @@ class _DiscoverBody extends StatelessWidget {
           StationSearchBar(
             value: state.searchTerm,
             onSubmitted: context.read<DiscoverCubit>().search,
+            onVoicePressed: context.read<DiscoverCubit>().toggleVoiceSearch,
+            isVoiceSearchRecording: state.isVoiceSearchRecording,
+            isVoiceSearchProcessing: state.isVoiceSearchProcessing,
           ),
           SizedBox(
             height: 520,
@@ -182,6 +246,9 @@ class _DiscoverBody extends StatelessWidget {
           StationSearchBar(
             value: state.searchTerm,
             onSubmitted: context.read<DiscoverCubit>().search,
+            onVoicePressed: context.read<DiscoverCubit>().toggleVoiceSearch,
+            isVoiceSearchRecording: state.isVoiceSearchRecording,
+            isVoiceSearchProcessing: state.isVoiceSearchProcessing,
           ),
           SizedBox(
             height: 420,
@@ -210,9 +277,12 @@ class _DiscoverBody extends StatelessWidget {
         StationSearchBar(
           value: state.searchTerm,
           onSubmitted: context.read<DiscoverCubit>().search,
+          onVoicePressed: context.read<DiscoverCubit>().toggleVoiceSearch,
+          isVoiceSearchRecording: state.isVoiceSearchRecording,
+          isVoiceSearchProcessing: state.isVoiceSearchProcessing,
         ),
         const SizedBox(height: AppSpacing.lg),
-        if (state.recommendedStation != null) ...[
+        if (state.hasAiRecommendation) ...[
           RecommendedStationCard(
             station: state.recommendedStation!,
             isFavorite: context.read<DiscoverCubit>().isFavorite(
@@ -231,6 +301,9 @@ class _DiscoverBody extends StatelessWidget {
                   state.recommendedStation!,
                 ),
           ),
+          const SizedBox(height: AppSpacing.lg),
+        ] else ...[
+          AiRecommendationEmptyCard(isLoading: state.isAiRecommendationLoading),
           const SizedBox(height: AppSpacing.lg),
         ],
         DiscoverFilterChips(

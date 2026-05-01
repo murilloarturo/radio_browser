@@ -20,17 +20,26 @@ class RadioBrowserShell extends StatefulWidget {
 class _RadioBrowserShellState extends State<RadioBrowserShell> {
   AppTab _selectedTab = AppTab.discover;
 
+  void _selectTab(AppTab tab) {
+    setState(() => _selectedTab = tab);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.paper,
       body: IndexedStack(
         index: _selectedTab.index,
-        children: const [DiscoverEntryPoint(), FavoritesEntryPoint()],
+        children: [
+          const DiscoverEntryPoint(),
+          FavoritesEntryPoint(
+            onDiscoverRequested: () => _selectTab(AppTab.discover),
+          ),
+        ],
       ),
       bottomNavigationBar: AppBottomNavigation(
         selectedTab: _selectedTab,
-        onTabSelected: (tab) => setState(() => _selectedTab = tab),
+        onTabSelected: _selectTab,
       ),
     );
   }
@@ -49,13 +58,15 @@ class DiscoverEntryPoint extends StatelessWidget {
 }
 
 class FavoritesEntryPoint extends StatelessWidget {
-  const FavoritesEntryPoint({super.key});
+  const FavoritesEntryPoint({required this.onDiscoverRequested, super.key});
+
+  final VoidCallback onDiscoverRequested;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<FavoritesCubit>(
       create: (_) => getIt<FavoritesCubit>()..load(),
-      child: const FavoritesPage(),
+      child: FavoritesPage(onDiscoverRequested: onDiscoverRequested),
     );
   }
 }

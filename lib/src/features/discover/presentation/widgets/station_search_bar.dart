@@ -9,11 +9,17 @@ class StationSearchBar extends StatefulWidget {
   const StationSearchBar({
     required this.value,
     required this.onSubmitted,
+    required this.onVoicePressed,
+    this.isVoiceSearchRecording = false,
+    this.isVoiceSearchProcessing = false,
     super.key,
   });
 
   final String value;
   final ValueChanged<String> onSubmitted;
+  final VoidCallback onVoicePressed;
+  final bool isVoiceSearchRecording;
+  final bool isVoiceSearchProcessing;
 
   @override
   State<StationSearchBar> createState() => _StationSearchBarState();
@@ -70,9 +76,27 @@ class _StationSearchBarState extends State<StationSearchBar> {
               ),
             ),
             IconButton(
-              tooltip: Localizable.searchWithAiHint.text,
-              onPressed: () {},
-              icon: const Icon(Icons.mic_none_rounded, color: AppColors.ink),
+              tooltip:
+                  widget.isVoiceSearchRecording
+                      ? Localizable.voiceSearchStop.text
+                      : Localizable.voiceSearchStart.text,
+              onPressed:
+                  widget.isVoiceSearchProcessing ? null : widget.onVoicePressed,
+              icon:
+                  widget.isVoiceSearchProcessing
+                      ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Icon(
+                        widget.isVoiceSearchRecording
+                            ? Icons.stop_rounded
+                            : Icons.mic_none_rounded,
+                        color:
+                            widget.isVoiceSearchRecording
+                                ? AppColors.danger
+                                : AppColors.ink,
+                      ),
             ),
           ],
         ),

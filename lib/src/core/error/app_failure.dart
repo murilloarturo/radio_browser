@@ -47,6 +47,13 @@ final class PersistenceFailure extends AppFailure {
   ]) : super(cause: cause);
 }
 
+final class AiUnavailableFailure extends AppFailure {
+  const AiUnavailableFailure([
+    super.message = 'AI search is unavailable.',
+    Object? cause,
+  ]) : super(cause: cause);
+}
+
 final class UnknownFailure extends AppFailure {
   const UnknownFailure([super.message = 'Something went wrong.', Object? cause])
     : super(cause: cause);

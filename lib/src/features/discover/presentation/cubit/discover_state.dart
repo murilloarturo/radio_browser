@@ -10,6 +10,8 @@ enum DiscoverStatus { initial, loading, success, failure }
 
 enum DiscoverFailureKind { network, unknown }
 
+enum AiRecommendationStatus { initial, loading, ready, unavailable }
+
 class DiscoverState extends Equatable {
   const DiscoverState({
     this.status = DiscoverStatus.initial,
@@ -24,6 +26,10 @@ class DiscoverState extends Equatable {
     this.playbackStatus = RadioPlaybackStatus.idle,
     this.volume = 1,
     this.playbackFailureMessage,
+    this.aiFailureMessage,
+    this.aiRecommendationStatus = AiRecommendationStatus.initial,
+    this.isVoiceSearchRecording = false,
+    this.isVoiceSearchProcessing = false,
   });
 
   final DiscoverStatus status;
@@ -38,6 +44,10 @@ class DiscoverState extends Equatable {
   final RadioPlaybackStatus playbackStatus;
   final double volume;
   final String? playbackFailureMessage;
+  final String? aiFailureMessage;
+  final AiRecommendationStatus aiRecommendationStatus;
+  final bool isVoiceSearchRecording;
+  final bool isVoiceSearchProcessing;
 
   bool get isLoading => status == DiscoverStatus.loading;
 
@@ -50,6 +60,15 @@ class DiscoverState extends Equatable {
   bool get isPlaybackLoading => playbackStatus == RadioPlaybackStatus.loading;
 
   bool get isNetworkFailure => failureKind == DiscoverFailureKind.network;
+
+  bool get hasAiRecommendation {
+    return aiRecommendationStatus == AiRecommendationStatus.ready &&
+        recommendedStation != null;
+  }
+
+  bool get isAiRecommendationLoading {
+    return aiRecommendationStatus == AiRecommendationStatus.loading;
+  }
 
   Set<String> get favoriteStationUuids {
     return favoriteStations.map((station) => station.stationUuid).toSet();
@@ -79,6 +98,11 @@ class DiscoverState extends Equatable {
     double? volume,
     String? playbackFailureMessage,
     bool clearPlaybackFailureMessage = false,
+    String? aiFailureMessage,
+    bool clearAiFailureMessage = false,
+    AiRecommendationStatus? aiRecommendationStatus,
+    bool? isVoiceSearchRecording,
+    bool? isVoiceSearchProcessing,
   }) {
     return DiscoverState(
       status: status ?? this.status,
@@ -98,6 +122,16 @@ class DiscoverState extends Equatable {
           clearPlaybackFailureMessage
               ? null
               : playbackFailureMessage ?? this.playbackFailureMessage,
+      aiFailureMessage:
+          clearAiFailureMessage
+              ? null
+              : aiFailureMessage ?? this.aiFailureMessage,
+      aiRecommendationStatus:
+          aiRecommendationStatus ?? this.aiRecommendationStatus,
+      isVoiceSearchRecording:
+          isVoiceSearchRecording ?? this.isVoiceSearchRecording,
+      isVoiceSearchProcessing:
+          isVoiceSearchProcessing ?? this.isVoiceSearchProcessing,
     );
   }
 
@@ -115,5 +149,9 @@ class DiscoverState extends Equatable {
     playbackStatus,
     volume,
     playbackFailureMessage,
+    aiFailureMessage,
+    aiRecommendationStatus,
+    isVoiceSearchRecording,
+    isVoiceSearchProcessing,
   ];
 }

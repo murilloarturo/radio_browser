@@ -10,6 +10,7 @@ class FavoritesState extends Equatable {
   const FavoritesState({
     this.status = FavoritesStatus.initial,
     this.stations = const <FavoriteStation>[],
+    this.similarStations = const <Station>[],
     this.failureMessage,
     this.activeStation,
     this.playbackStatus = RadioPlaybackStatus.idle,
@@ -19,6 +20,7 @@ class FavoritesState extends Equatable {
 
   final FavoritesStatus status;
   final List<FavoriteStation> stations;
+  final List<Station> similarStations;
   final String? failureMessage;
   final Station? activeStation;
   final RadioPlaybackStatus playbackStatus;
@@ -36,6 +38,7 @@ class FavoritesState extends Equatable {
   FavoritesState copyWith({
     FavoritesStatus? status,
     List<FavoriteStation>? stations,
+    List<Station>? similarStations,
     String? failureMessage,
     bool clearFailureMessage = false,
     Station? activeStation,
@@ -48,6 +51,7 @@ class FavoritesState extends Equatable {
     return FavoritesState(
       status: status ?? this.status,
       stations: stations ?? this.stations,
+      similarStations: similarStations ?? this.similarStations,
       failureMessage:
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
       activeStation:
@@ -65,6 +69,7 @@ class FavoritesState extends Equatable {
   List<Object?> get props => [
     status,
     stations,
+    similarStations,
     failureMessage,
     activeStation,
     playbackStatus,

@@ -38,6 +38,10 @@ lib/
         data/
         domain/
         presentation/
+      ai_finder/
+        data/
+        domain/
+        presentation/
 ```
 
 Feature boundaries:
@@ -54,12 +58,13 @@ Shared code belongs in `core` only when it is genuinely reusable across features
 - Use `dio` for HTTP access to the Radio Browser API.
 - Hide playback details behind a service abstraction backed by `just_audio` and `audio_session`.
 - Use Hive through a small abstraction for favorites persistence.
+- Use OpenAI only behind the `ai_finder` feature boundary. AI may rank or explain real Radio Browser stations, but it must not invent stations.
 - Add `go_router` only if navigation complexity justifies it.
 - Use `bloc_test` and `mocktail` for focused tests.
 
 ## Secrets
 
-Never commit API keys or local secrets. Optional OpenAI work later must read configuration from `--dart-define`, not from committed files.
+Never commit API keys or local secrets. OpenAI configuration must read from `--dart-define`, not from committed files.
 
 ## Testing Expectations
 
