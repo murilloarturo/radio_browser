@@ -12,6 +12,8 @@ import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../../player/domain/usecases/pause_radio_station.dart';
 import '../../../player/domain/usecases/play_radio_station.dart';
 import '../../../player/domain/usecases/resume_radio_station.dart';
+import '../../../player/domain/usecases/set_radio_volume.dart';
+import '../../../player/domain/usecases/stop_radio_station.dart';
 import '../../../player/domain/usecases/watch_radio_playback.dart';
 import '../../domain/entities/station.dart';
 import '../../domain/entities/station_search_query.dart';
@@ -31,6 +33,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     required PlayRadioStation playRadioStation,
     required PauseRadioStation pauseRadioStation,
     required ResumeRadioStation resumeRadioStation,
+    required SetRadioVolume setRadioVolume,
+    required StopRadioStation stopRadioStation,
     required WatchRadioPlayback watchRadioPlayback,
   }) : _getStations = getStations,
        _searchStations = searchStations,
@@ -40,6 +44,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
        _playRadioStation = playRadioStation,
        _pauseRadioStation = pauseRadioStation,
        _resumeRadioStation = resumeRadioStation,
+       _setRadioVolume = setRadioVolume,
+       _stopRadioStation = stopRadioStation,
        _watchRadioPlayback = watchRadioPlayback,
        super(const DiscoverState());
 
@@ -51,6 +57,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   final PlayRadioStation _playRadioStation;
   final PauseRadioStation _pauseRadioStation;
   final ResumeRadioStation _resumeRadioStation;
+  final SetRadioVolume _setRadioVolume;
+  final StopRadioStation _stopRadioStation;
   final WatchRadioPlayback _watchRadioPlayback;
 
   StreamSubscription<Result<List<FavoriteStation>>>? _favoritesSubscription;
@@ -175,6 +183,34 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     await _toggleFavoriteStation(station.toFavoriteStation());
   }
 
+  Future<void> setVolume(double volume) async {
+    final result = await _setRadioVolume(volume);
+    result.when(
+      success: (_) {},
+      failure:
+          (failure) => emit(
+            state.copyWith(
+              playbackStatus: RadioPlaybackStatus.failure,
+              playbackFailureMessage: failure.message,
+            ),
+          ),
+    );
+  }
+
+  Future<void> stopPlayback() async {
+    final result = await _stopRadioStation();
+    result.when(
+      success: (_) {},
+      failure:
+          (failure) => emit(
+            state.copyWith(
+              playbackStatus: RadioPlaybackStatus.failure,
+              playbackFailureMessage: failure.message,
+            ),
+          ),
+    );
+  }
+
   bool isFavorite(String stationUuid) {
     return state.favoriteStationUuids.contains(stationUuid);
   }
@@ -247,6 +283,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           activeStation: snapshot.station,
           clearActiveStation: snapshot.station == null,
           playbackStatus: snapshot.status,
+          volume: snapshot.volume,
           playbackFailureMessage: snapshot.failureMessage,
           clearPlaybackFailureMessage: snapshot.failureMessage == null,
         ),

@@ -16,6 +16,8 @@ abstract interface class RadioPlayerRepository {
 
   Future<Result<void>> resume();
 
+  Future<Result<void>> setVolume(double volume);
+
   Future<Result<void>> stop();
 
   Future<void> dispose();

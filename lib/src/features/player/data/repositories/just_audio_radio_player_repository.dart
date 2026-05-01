@@ -26,6 +26,7 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
   StreamSubscription<PlayerState>? _playerStateSubscription;
   RadioPlaybackSnapshot _currentSnapshot = const RadioPlaybackSnapshot.idle();
   Station? _currentStation;
+  double _volume = 1;
   bool _audioSessionConfigured = false;
 
   @override
@@ -52,6 +53,7 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
       _emit(
         RadioPlaybackSnapshot(
           status: RadioPlaybackStatus.loading,
+          volume: _volume,
           station: station,
         ),
       );
@@ -109,11 +111,32 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
   }
 
   @override
+  Future<Result<void>> setVolume(double volume) async {
+    final normalizedVolume = volume.clamp(0.0, 1.0).toDouble();
+    try {
+      _volume = normalizedVolume;
+      await _audioPlayer.setVolume(normalizedVolume);
+      _emit(_currentSnapshot.copyWith(volume: normalizedVolume));
+      return const Success<void>(null);
+    } on Object catch (error) {
+      return _fail(
+        _currentStation,
+        UnknownFailure(Localizable.playbackFailed.text, error),
+      );
+    }
+  }
+
+  @override
   Future<Result<void>> stop() async {
     try {
       await _audioPlayer.stop();
       _currentStation = null;
-      _emit(const RadioPlaybackSnapshot.idle());
+      _emit(
+        RadioPlaybackSnapshot(
+          status: RadioPlaybackStatus.idle,
+          volume: _volume,
+        ),
+      );
       return const Success<void>(null);
     } on Object catch (error) {
       return _fail(
@@ -157,13 +180,16 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
             : RadioPlaybackStatus.paused,
     };
 
-    _emit(RadioPlaybackSnapshot(status: status, station: station));
+    _emit(
+      RadioPlaybackSnapshot(status: status, volume: _volume, station: station),
+    );
   }
 
   void _handlePlayerError(Object error) {
     _emit(
       RadioPlaybackSnapshot(
         status: RadioPlaybackStatus.failure,
+        volume: _volume,
         station: _currentStation,
         failureMessage: Localizable.playbackFailed.text,
       ),
@@ -174,6 +200,7 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
     _emit(
       RadioPlaybackSnapshot(
         status: RadioPlaybackStatus.failure,
+        volume: _volume,
         station: station,
         failureMessage: failure.message,
       ),

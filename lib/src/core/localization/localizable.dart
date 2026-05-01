@@ -34,6 +34,16 @@ enum Localizable {
   noConnectionMessage,
   noFavoritesTitle,
   noFavoritesMessage,
+  nowPlayingTitle,
+  collapsePlayer,
+  playerOptions,
+  stop,
+  favorite,
+  volume,
+  similarStations,
+  seeAll,
+  previousStation,
+  nextStation,
 }
 
 class Localizables {
@@ -77,6 +87,16 @@ class Localizables {
     Localizable.noFavoritesTitle: 'No favorite stations yet',
     Localizable.noFavoritesMessage:
         'Tap the heart on any station to keep it here for later.',
+    Localizable.nowPlayingTitle: 'Now Playing',
+    Localizable.collapsePlayer: 'Collapse player',
+    Localizable.playerOptions: 'Player options',
+    Localizable.stop: 'Stop',
+    Localizable.favorite: 'Favorite',
+    Localizable.volume: 'Volume',
+    Localizable.similarStations: 'Similar Stations',
+    Localizable.seeAll: 'See all',
+    Localizable.previousStation: 'Previous station',
+    Localizable.nextStation: 'Next station',
   };
 
   static Map<Localizable, String> _dictionary = _english;

@@ -22,6 +22,7 @@ class DiscoverState extends Equatable {
     this.failureKind,
     this.activeStation,
     this.playbackStatus = RadioPlaybackStatus.idle,
+    this.volume = 1,
     this.playbackFailureMessage,
   });
 
@@ -35,6 +36,7 @@ class DiscoverState extends Equatable {
   final DiscoverFailureKind? failureKind;
   final Station? activeStation;
   final RadioPlaybackStatus playbackStatus;
+  final double volume;
   final String? playbackFailureMessage;
 
   bool get isLoading => status == DiscoverStatus.loading;
@@ -74,6 +76,7 @@ class DiscoverState extends Equatable {
     Station? activeStation,
     bool clearActiveStation = false,
     RadioPlaybackStatus? playbackStatus,
+    double? volume,
     String? playbackFailureMessage,
     bool clearPlaybackFailureMessage = false,
   }) {
@@ -90,6 +93,7 @@ class DiscoverState extends Equatable {
       activeStation:
           clearActiveStation ? null : activeStation ?? this.activeStation,
       playbackStatus: playbackStatus ?? this.playbackStatus,
+      volume: volume ?? this.volume,
       playbackFailureMessage:
           clearPlaybackFailureMessage
               ? null
@@ -109,6 +113,7 @@ class DiscoverState extends Equatable {
     failureKind,
     activeStation,
     playbackStatus,
+    volume,
     playbackFailureMessage,
   ];
 }

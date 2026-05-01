@@ -13,6 +13,7 @@ class FavoritesState extends Equatable {
     this.failureMessage,
     this.activeStation,
     this.playbackStatus = RadioPlaybackStatus.idle,
+    this.volume = 1,
     this.playbackFailureMessage,
   });
 
@@ -21,6 +22,7 @@ class FavoritesState extends Equatable {
   final String? failureMessage;
   final Station? activeStation;
   final RadioPlaybackStatus playbackStatus;
+  final double volume;
   final String? playbackFailureMessage;
 
   bool get isLoading => status == FavoritesStatus.loading;
@@ -39,6 +41,7 @@ class FavoritesState extends Equatable {
     Station? activeStation,
     bool clearActiveStation = false,
     RadioPlaybackStatus? playbackStatus,
+    double? volume,
     String? playbackFailureMessage,
     bool clearPlaybackFailureMessage = false,
   }) {
@@ -50,6 +53,7 @@ class FavoritesState extends Equatable {
       activeStation:
           clearActiveStation ? null : activeStation ?? this.activeStation,
       playbackStatus: playbackStatus ?? this.playbackStatus,
+      volume: volume ?? this.volume,
       playbackFailureMessage:
           clearPlaybackFailureMessage
               ? null
@@ -64,6 +68,7 @@ class FavoritesState extends Equatable {
     failureMessage,
     activeStation,
     playbackStatus,
+    volume,
     playbackFailureMessage,
   ];
 }

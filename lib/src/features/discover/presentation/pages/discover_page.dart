@@ -16,6 +16,10 @@ import '../widgets/mini_player_bar.dart';
 import '../widgets/recommended_station_card.dart';
 import '../widgets/station_list.dart';
 import '../widgets/station_search_bar.dart';
+import '../../../player/presentation/pages/full_player_page.dart';
+import '../../../player/presentation/pages/full_player_route.dart';
+
+const _discoverArtworkHeroTag = 'discover-player-artwork';
 
 class DiscoverPage extends StatelessWidget {
   const DiscoverPage({super.key});
@@ -61,9 +65,69 @@ class DiscoverPage extends StatelessWidget {
                       () => context.read<DiscoverCubit>().toggleFavorite(
                         state.activeStation!,
                       ),
+                  onOpenPlayer: () => _openDiscoverPlayer(context),
+                  artworkHeroTag: _discoverArtworkHeroTag,
                 ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+void _openDiscoverPlayer(BuildContext context) {
+  final cubit = context.read<DiscoverCubit>();
+  Navigator.of(context).push(
+    buildFullPlayerRoute(
+      child: BlocProvider.value(
+        value: cubit,
+        child: const _DiscoverFullPlayerPage(),
+      ),
+    ),
+  );
+}
+
+class _DiscoverFullPlayerPage extends StatelessWidget {
+  const _DiscoverFullPlayerPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<DiscoverCubit, DiscoverState>(
+      builder: (context, state) {
+        final station = state.activeStation;
+        if (station == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              Navigator.of(context).maybePop();
+            }
+          });
+          return const SizedBox.shrink();
+        }
+
+        final similarStations = state.stations
+            .where((item) => item.stationUuid != station.stationUuid)
+            .take(6)
+            .toList(growable: false);
+
+        return FullPlayerPage(
+          station: station,
+          playbackStatus: state.playbackStatus,
+          volume: state.volume,
+          isFavorite: context.read<DiscoverCubit>().isFavorite(
+            station.stationUuid,
+          ),
+          similarStations: similarStations,
+          artworkHeroTag: _discoverArtworkHeroTag,
+          onPlaybackToggle:
+              context.read<DiscoverCubit>().toggleMiniPlayerPlayback,
+          onStop: () async {
+            await context.read<DiscoverCubit>().stopPlayback();
+          },
+          onFavoriteToggle:
+              () => context.read<DiscoverCubit>().toggleFavorite(station),
+          onVolumeChanged:
+              (volume) => context.read<DiscoverCubit>().setVolume(volume),
         );
       },
     );

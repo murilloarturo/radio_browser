@@ -32,6 +32,7 @@ import '../../features/player/domain/repositories/radio_player_repository.dart';
 import '../../features/player/domain/usecases/pause_radio_station.dart';
 import '../../features/player/domain/usecases/play_radio_station.dart';
 import '../../features/player/domain/usecases/resume_radio_station.dart';
+import '../../features/player/domain/usecases/set_radio_volume.dart';
 import '../../features/player/domain/usecases/stop_radio_station.dart';
 import '../../features/player/domain/usecases/watch_radio_playback.dart';
 
@@ -183,6 +184,10 @@ Future<void> configureDependencies({
     sl.registerFactory<ResumeRadioStation>(() => ResumeRadioStation(sl()));
   }
 
+  if (!sl.isRegistered<SetRadioVolume>()) {
+    sl.registerFactory<SetRadioVolume>(() => SetRadioVolume(sl()));
+  }
+
   if (!sl.isRegistered<StopRadioStation>()) {
     sl.registerFactory<StopRadioStation>(() => StopRadioStation(sl()));
   }
@@ -202,6 +207,8 @@ Future<void> configureDependencies({
         playRadioStation: sl(),
         pauseRadioStation: sl(),
         resumeRadioStation: sl(),
+        setRadioVolume: sl(),
+        stopRadioStation: sl(),
         watchRadioPlayback: sl(),
       ),
     );
@@ -215,6 +222,8 @@ Future<void> configureDependencies({
         playRadioStation: sl(),
         pauseRadioStation: sl(),
         resumeRadioStation: sl(),
+        setRadioVolume: sl(),
+        stopRadioStation: sl(),
         watchRadioPlayback: sl(),
       ),
     );

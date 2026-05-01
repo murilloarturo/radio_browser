@@ -19,6 +19,8 @@ import 'package:radio_browser/src/features/player/domain/entities/radio_playback
 import 'package:radio_browser/src/features/player/domain/usecases/pause_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/play_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/resume_radio_station.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/set_radio_volume.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/stop_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/watch_radio_playback.dart';
 
 import '../../../../helpers/favorite_station_fixtures.dart';
@@ -40,6 +42,10 @@ class MockPauseRadioStation extends Mock implements PauseRadioStation {}
 
 class MockResumeRadioStation extends Mock implements ResumeRadioStation {}
 
+class MockSetRadioVolume extends Mock implements SetRadioVolume {}
+
+class MockStopRadioStation extends Mock implements StopRadioStation {}
+
 class MockWatchRadioPlayback extends Mock implements WatchRadioPlayback {}
 
 void main() {
@@ -51,6 +57,8 @@ void main() {
   late MockPlayRadioStation playRadioStation;
   late MockPauseRadioStation pauseRadioStation;
   late MockResumeRadioStation resumeRadioStation;
+  late MockSetRadioVolume setRadioVolume;
+  late MockStopRadioStation stopRadioStation;
   late MockWatchRadioPlayback watchRadioPlayback;
   late Station station;
   late FavoriteStation favoriteStation;
@@ -65,6 +73,8 @@ void main() {
       playRadioStation: playRadioStation,
       pauseRadioStation: pauseRadioStation,
       resumeRadioStation: resumeRadioStation,
+      setRadioVolume: setRadioVolume,
+      stopRadioStation: stopRadioStation,
       watchRadioPlayback: watchRadioPlayback,
     );
   }
@@ -84,6 +94,8 @@ void main() {
     playRadioStation = MockPlayRadioStation();
     pauseRadioStation = MockPauseRadioStation();
     resumeRadioStation = MockResumeRadioStation();
+    setRadioVolume = MockSetRadioVolume();
+    stopRadioStation = MockStopRadioStation();
     watchRadioPlayback = MockWatchRadioPlayback();
     station = stationFixture();
     favoriteStation = favoriteStationFixture(
@@ -118,6 +130,12 @@ void main() {
     ).thenAnswer((_) async => const Success<void>(null));
     when(
       () => resumeRadioStation(),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => setRadioVolume(any()),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      () => stopRadioStation(),
     ).thenAnswer((_) async => const Success<void>(null));
     when(
       () => watchRadioPlayback(),
@@ -267,6 +285,24 @@ void main() {
         (captured.single as FavoriteStation).stationUuid,
         station.stationUuid,
       );
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'sets player volume through the use case',
+    build: buildCubit,
+    act: (cubit) => cubit.setVolume(0.4),
+    verify: (_) {
+      verify(() => setRadioVolume(0.4)).called(1);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'stops playback through the use case',
+    build: buildCubit,
+    act: (cubit) => cubit.stopPlayback(),
+    verify: (_) {
+      verify(() => stopRadioStation()).called(1);
     },
   );
 }

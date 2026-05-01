@@ -22,6 +22,7 @@ import 'package:radio_browser/src/features/player/domain/repositories/radio_play
 import 'package:radio_browser/src/features/player/domain/usecases/pause_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/play_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/resume_radio_station.dart';
+import 'package:radio_browser/src/features/player/domain/usecases/set_radio_volume.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/stop_radio_station.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/watch_radio_playback.dart';
 
@@ -48,6 +49,10 @@ class FakeRadioPlayerRepository implements RadioPlayerRepository {
 
   @override
   Future<Result<void>> resume() async => const Success<void>(null);
+
+  @override
+  Future<Result<void>> setVolume(double volume) async =>
+      const Success<void>(null);
 
   @override
   Future<Result<void>> stop() async => const Success<void>(null);
@@ -97,6 +102,7 @@ void main() {
     expect(getIt<PlayRadioStation>(), isA<PlayRadioStation>());
     expect(getIt<PauseRadioStation>(), isA<PauseRadioStation>());
     expect(getIt<ResumeRadioStation>(), isA<ResumeRadioStation>());
+    expect(getIt<SetRadioVolume>(), isA<SetRadioVolume>());
     expect(getIt<StopRadioStation>(), isA<StopRadioStation>());
     expect(getIt<WatchRadioPlayback>(), isA<WatchRadioPlayback>());
   });

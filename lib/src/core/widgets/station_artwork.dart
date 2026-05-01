@@ -4,16 +4,22 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radii.dart';
 
 class StationArtwork extends StatelessWidget {
-  const StationArtwork({this.imageUrl, this.size = 70, super.key});
+  const StationArtwork({
+    this.imageUrl,
+    this.size = 70,
+    this.heroTag,
+    super.key,
+  });
 
   final String? imageUrl;
   final double size;
+  final Object? heroTag;
 
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.circular(AppRadii.xs);
 
-    return ClipRRect(
+    final artwork = ClipRRect(
       borderRadius: borderRadius,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -35,6 +41,12 @@ class StationArtwork extends StatelessWidget {
         ),
       ),
     );
+
+    if (heroTag == null) {
+      return artwork;
+    }
+
+    return Hero(tag: heroTag!, child: artwork);
   }
 }
 
