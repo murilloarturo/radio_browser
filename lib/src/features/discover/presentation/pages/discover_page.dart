@@ -6,9 +6,9 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/app_offline_state.dart';
 import '../cubit/discover_cubit.dart';
 import '../cubit/discover_state.dart';
-import '../widgets/app_bottom_navigation.dart';
 import '../widgets/discover_filter_chips.dart';
 import '../widgets/discover_header.dart';
 import '../widgets/discover_loading_view.dart';
@@ -38,35 +38,31 @@ class DiscoverPage extends StatelessWidget {
         );
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.paper,
-          body: SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: RefreshIndicator(
-                    color: AppColors.brand,
-                    onRefresh: context.read<DiscoverCubit>().refresh,
-                    child: _DiscoverBody(state: state),
-                  ),
+        return SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  color: AppColors.brand,
+                  onRefresh: context.read<DiscoverCubit>().refresh,
+                  child: _DiscoverBody(state: state),
                 ),
-                if (state.hasMiniPlayer)
-                  MiniPlayerBar(
-                    station: state.activeStation!,
-                    playbackStatus: state.playbackStatus,
-                    isFavorite: context.read<DiscoverCubit>().isFavorite(
-                      state.activeStation!.stationUuid,
-                    ),
-                    onPlaybackToggle:
-                        context.read<DiscoverCubit>().toggleMiniPlayerPlayback,
-                    onFavoriteToggle:
-                        () => context.read<DiscoverCubit>().toggleFavorite(
-                          state.activeStation!,
-                        ),
+              ),
+              if (state.hasMiniPlayer)
+                MiniPlayerBar(
+                  station: state.activeStation!,
+                  playbackStatus: state.playbackStatus,
+                  isFavorite: context.read<DiscoverCubit>().isFavorite(
+                    state.activeStation!.stationUuid,
                   ),
-                const AppBottomNavigation(),
-              ],
-            ),
+                  onPlaybackToggle:
+                      context.read<DiscoverCubit>().toggleMiniPlayerPlayback,
+                  onFavoriteToggle:
+                      () => context.read<DiscoverCubit>().toggleFavorite(
+                        state.activeStation!,
+                      ),
+                ),
+            ],
           ),
         );
       },
@@ -96,13 +92,18 @@ class _DiscoverBody extends StatelessWidget {
             onSubmitted: context.read<DiscoverCubit>().search,
           ),
           SizedBox(
-            height: 420,
-            child: AppErrorState(
-              message:
-                  state.failureMessage ??
-                  Localizable.pleaseTryAgainMessage.text,
-              onRetry: context.read<DiscoverCubit>().refresh,
-            ),
+            height: 520,
+            child:
+                state.isNetworkFailure
+                    ? AppOfflineState(
+                      onRetry: context.read<DiscoverCubit>().refresh,
+                    )
+                    : AppErrorState(
+                      message:
+                          state.failureMessage ??
+                          Localizable.pleaseTryAgainMessage.text,
+                      onRetry: context.read<DiscoverCubit>().refresh,
+                    ),
           ),
         ],
       );

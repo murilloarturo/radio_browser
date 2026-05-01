@@ -16,6 +16,7 @@ class RecommendedStationCard extends StatelessWidget {
     required this.isLoading,
     required this.onPlay,
     required this.onFavoriteToggle,
+    this.title = Localizable.recommendedForYou,
     super.key,
   });
 
@@ -24,6 +25,7 @@ class RecommendedStationCard extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPlay;
   final VoidCallback onFavoriteToggle;
+  final Localizable? title;
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +34,16 @@ class RecommendedStationCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          Localizable.recommendedForYou.text,
-          style: textTheme.titleMedium?.copyWith(
-            color: AppColors.ink,
-            fontWeight: FontWeight.w800,
+        if (title != null) ...[
+          Text(
+            title!.text,
+            style: textTheme.titleMedium?.copyWith(
+              color: AppColors.ink,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.xs),
+        ],
         DecoratedBox(
           decoration: BoxDecoration(
             color: AppColors.surface,

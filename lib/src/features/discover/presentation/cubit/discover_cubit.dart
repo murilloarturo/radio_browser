@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../favorites/domain/entities/favorite_station.dart';
 import '../../../favorites/domain/usecases/toggle_favorite_station.dart';
 import '../../../favorites/domain/usecases/watch_favorite_stations.dart';
+import '../../../favorites/presentation/mappers/station_favorite_mapper.dart';
 import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../../player/domain/usecases/pause_radio_station.dart';
 import '../../../player/domain/usecases/play_radio_station.dart';
@@ -16,7 +18,6 @@ import '../../domain/entities/station_search_query.dart';
 import '../../domain/usecases/get_genres.dart';
 import '../../domain/usecases/get_stations.dart';
 import '../../domain/usecases/search_stations.dart';
-import '../mappers/favorite_station_mapper.dart';
 import 'discover_filter.dart';
 import 'discover_state.dart';
 
@@ -198,6 +199,10 @@ class DiscoverCubit extends Cubit<DiscoverState> {
             state.copyWith(
               status: DiscoverStatus.failure,
               failureMessage: failure.message,
+              failureKind:
+                  failure is NetworkFailure
+                      ? DiscoverFailureKind.network
+                      : DiscoverFailureKind.unknown,
             ),
           ),
     );

@@ -16,6 +16,7 @@ import 'package:radio_browser/src/features/favorites/domain/usecases/is_favorite
 import 'package:radio_browser/src/features/favorites/domain/usecases/remove_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/toggle_favorite_station.dart';
 import 'package:radio_browser/src/features/favorites/domain/usecases/watch_favorite_stations.dart';
+import 'package:radio_browser/src/features/favorites/presentation/cubit/favorites_cubit.dart';
 import 'package:radio_browser/src/features/player/domain/entities/radio_playback_snapshot.dart';
 import 'package:radio_browser/src/features/player/domain/repositories/radio_player_repository.dart';
 import 'package:radio_browser/src/features/player/domain/usecases/pause_radio_station.dart';
@@ -90,6 +91,7 @@ void main() {
     expect(getIt<RemoveFavoriteStation>(), isA<RemoveFavoriteStation>());
     expect(getIt<ToggleFavoriteStation>(), isA<ToggleFavoriteStation>());
     expect(getIt<IsFavoriteStation>(), isA<IsFavoriteStation>());
+    expect(getIt<FavoritesCubit>(), isA<FavoritesCubit>());
 
     expect(getIt<RadioPlayerRepository>(), isA<RadioPlayerRepository>());
     expect(getIt<PlayRadioStation>(), isA<PlayRadioStation>());

@@ -8,6 +8,8 @@ import 'discover_filter.dart';
 
 enum DiscoverStatus { initial, loading, success, failure }
 
+enum DiscoverFailureKind { network, unknown }
+
 class DiscoverState extends Equatable {
   const DiscoverState({
     this.status = DiscoverStatus.initial,
@@ -17,6 +19,7 @@ class DiscoverState extends Equatable {
     this.activeFilter = DiscoverFilter.popular,
     this.searchTerm = '',
     this.failureMessage,
+    this.failureKind,
     this.activeStation,
     this.playbackStatus = RadioPlaybackStatus.idle,
     this.playbackFailureMessage,
@@ -29,6 +32,7 @@ class DiscoverState extends Equatable {
   final DiscoverFilter activeFilter;
   final String searchTerm;
   final String? failureMessage;
+  final DiscoverFailureKind? failureKind;
   final Station? activeStation;
   final RadioPlaybackStatus playbackStatus;
   final String? playbackFailureMessage;
@@ -42,6 +46,8 @@ class DiscoverState extends Equatable {
   bool get isMiniPlayerPlaying => playbackStatus == RadioPlaybackStatus.playing;
 
   bool get isPlaybackLoading => playbackStatus == RadioPlaybackStatus.loading;
+
+  bool get isNetworkFailure => failureKind == DiscoverFailureKind.network;
 
   Set<String> get favoriteStationUuids {
     return favoriteStations.map((station) => station.stationUuid).toSet();
@@ -63,6 +69,7 @@ class DiscoverState extends Equatable {
     DiscoverFilter? activeFilter,
     String? searchTerm,
     String? failureMessage,
+    DiscoverFailureKind? failureKind,
     bool clearFailureMessage = false,
     Station? activeStation,
     bool clearActiveStation = false,
@@ -79,6 +86,7 @@ class DiscoverState extends Equatable {
       searchTerm: searchTerm ?? this.searchTerm,
       failureMessage:
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
+      failureKind: clearFailureMessage ? null : failureKind ?? this.failureKind,
       activeStation:
           clearActiveStation ? null : activeStation ?? this.activeStation,
       playbackStatus: playbackStatus ?? this.playbackStatus,
@@ -98,6 +106,7 @@ class DiscoverState extends Equatable {
     activeFilter,
     searchTerm,
     failureMessage,
+    failureKind,
     activeStation,
     playbackStatus,
     playbackFailureMessage,

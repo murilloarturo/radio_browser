@@ -3,6 +3,7 @@ enum Localizable {
   discoverTab,
   aiFinderTab,
   favoritesTab,
+  favoritesTitle,
   searchWithAiHint,
   recommendedForYou,
   play,
@@ -29,6 +30,10 @@ enum Localizable {
   discoverFilterNews,
   discoverFilterRock,
   playbackFailed,
+  noConnectionTitle,
+  noConnectionMessage,
+  noFavoritesTitle,
+  noFavoritesMessage,
 }
 
 class Localizables {
@@ -39,6 +44,7 @@ class Localizables {
     Localizable.discoverTab: 'Discover',
     Localizable.aiFinderTab: 'AI Finder',
     Localizable.favoritesTab: 'Favorites',
+    Localizable.favoritesTitle: 'Favorites',
     Localizable.searchWithAiHint: 'Search with AI',
     Localizable.recommendedForYou: 'Recommended for you',
     Localizable.play: 'Play',
@@ -65,6 +71,12 @@ class Localizables {
     Localizable.discoverFilterNews: 'News',
     Localizable.discoverFilterRock: 'Rock',
     Localizable.playbackFailed: 'Station could not play.',
+    Localizable.noConnectionTitle: 'No internet connection',
+    Localizable.noConnectionMessage:
+        'Once you are connected again, your stations will be right here.',
+    Localizable.noFavoritesTitle: 'No favorite stations yet',
+    Localizable.noFavoritesMessage:
+        'Tap the heart on any station to keep it here for later.',
   };
 
   static Map<Localizable, String> _dictionary = _english;

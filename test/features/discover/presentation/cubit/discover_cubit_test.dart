@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:radio_browser/src/core/error/app_failure.dart';
 import 'package:radio_browser/src/core/result/result.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station.dart';
 import 'package:radio_browser/src/features/discover/domain/entities/station_genre.dart';
@@ -137,6 +138,21 @@ void main() {
         StationGenre(name: 'jazz', stationCount: 20),
       ]);
       expect(cubit.isFavorite(station.stationUuid), isTrue);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'marks network failures for the offline state',
+    setUp: () {
+      when(
+        () => getStations(query: any(named: 'query')),
+      ).thenAnswer((_) async => const Failure<List<Station>>(NetworkFailure()));
+    },
+    build: buildCubit,
+    act: (cubit) => cubit.load(),
+    verify: (cubit) {
+      expect(cubit.state.status, DiscoverStatus.failure);
+      expect(cubit.state.failureKind, DiscoverFailureKind.network);
     },
   );
 

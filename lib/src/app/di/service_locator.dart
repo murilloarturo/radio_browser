@@ -26,6 +26,7 @@ import '../../features/favorites/domain/usecases/is_favorite_station.dart';
 import '../../features/favorites/domain/usecases/remove_favorite_station.dart';
 import '../../features/favorites/domain/usecases/toggle_favorite_station.dart';
 import '../../features/favorites/domain/usecases/watch_favorite_stations.dart';
+import '../../features/favorites/presentation/cubit/favorites_cubit.dart';
 import '../../features/player/data/repositories/just_audio_radio_player_repository.dart';
 import '../../features/player/domain/repositories/radio_player_repository.dart';
 import '../../features/player/domain/usecases/pause_radio_station.dart';
@@ -196,6 +197,19 @@ Future<void> configureDependencies({
         getStations: sl(),
         searchStations: sl(),
         getGenres: sl(),
+        watchFavoriteStations: sl(),
+        toggleFavoriteStation: sl(),
+        playRadioStation: sl(),
+        pauseRadioStation: sl(),
+        resumeRadioStation: sl(),
+        watchRadioPlayback: sl(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<FavoritesCubit>()) {
+    sl.registerFactory<FavoritesCubit>(
+      () => FavoritesCubit(
         watchFavoriteStations: sl(),
         toggleFavoriteStation: sl(),
         playRadioStation: sl(),
