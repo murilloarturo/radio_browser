@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
@@ -21,10 +20,11 @@ class AppOfflineState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(
+            Image.asset(
               AppAssets.offlineIllustration,
-              height: 220,
-              semanticsLabel: Localizable.noConnectionTitle.text,
+              height: 240,
+              fit: BoxFit.contain,
+              semanticLabel: Localizable.noConnectionTitle.text,
             ),
             const SizedBox(height: AppSpacing.xl),
             Text(
