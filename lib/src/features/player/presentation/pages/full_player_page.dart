@@ -46,13 +46,14 @@ class FullPlayerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
     final visibleSimilarStations = similarStations
         .where((item) => item.stationUuid != station.stationUuid)
         .take(6)
         .toList(growable: false);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: colors.paper,
       body: SafeArea(
         child: Column(
           children: [
@@ -89,7 +90,7 @@ class FullPlayerPage extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.headlineSmall?.copyWith(
-                          color: AppColors.ink,
+                          color: colors.ink,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -100,7 +101,7 @@ class FullPlayerPage extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.titleSmall?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: colors.inkMuted,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -110,7 +111,7 @@ class FullPlayerPage extends StatelessWidget {
                         _streamLine(station),
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: colors.inkMuted,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -167,10 +168,12 @@ class _PlayerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.softLine)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(bottom: BorderSide(color: colors.softLine)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -188,7 +191,7 @@ class _PlayerHeader extends StatelessWidget {
                   Localizable.nowPlayingTitle.text,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.ink,
+                    color: colors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -232,11 +235,13 @@ class _FavoriteArtworkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return Material(
-      color: isFavorite ? AppColors.brand : AppColors.surface,
+      color: isFavorite ? colors.brand : colors.surface,
       shape: const CircleBorder(),
       elevation: 8,
-      shadowColor: AppColors.ink.withValues(alpha: 0.18),
+      shadowColor: colors.shadow.withValues(alpha: 0.24),
       child: IconButton(
         tooltip:
             isFavorite
@@ -245,7 +250,7 @@ class _FavoriteArtworkButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(
           isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          color: isFavorite ? AppColors.surface : AppColors.brand,
+          color: isFavorite ? colors.onBrand : colors.brand,
         ),
       ),
     );
@@ -282,6 +287,8 @@ class _ParallaxArtworkState extends State<_ParallaxArtwork> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
@@ -296,12 +303,12 @@ class _ParallaxArtworkState extends State<_ParallaxArtwork> {
         borderRadius: BorderRadius.circular(AppRadii.lg),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.22),
+            color: colors.shadow.withValues(alpha: 0.28),
             offset: const Offset(0, 24),
             blurRadius: 36,
           ),
           BoxShadow(
-            color: AppColors.brand.withValues(alpha: 0.12),
+            color: colors.brand.withValues(alpha: 0.16),
             offset: const Offset(0, 10),
             blurRadius: 24,
           ),
@@ -336,6 +343,7 @@ class _StationTags extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
     final tags = station.tags.take(3).toList(growable: false);
     if (tags.isEmpty) {
       return const SizedBox.shrink();
@@ -350,8 +358,8 @@ class _StationTags extends StatelessWidget {
             return Chip(
               label: Text(tag),
               visualDensity: VisualDensity.compact,
-              backgroundColor: AppColors.surface,
-              side: const BorderSide(color: AppColors.line),
+              backgroundColor: colors.surface,
+              side: BorderSide(color: colors.line),
             );
           }).toList(),
     );
@@ -426,26 +434,28 @@ class _VolumeControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           Localizable.volume.text,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.ink,
+            color: colors.ink,
             fontWeight: FontWeight.w800,
           ),
         ),
         Row(
           children: [
-            const Icon(Icons.volume_down_rounded, color: AppColors.ink),
+            Icon(Icons.volume_down_rounded, color: colors.ink),
             Expanded(
               child: Slider(
                 value: volume.clamp(0.0, 1.0).toDouble(),
                 onChanged: onChanged,
               ),
             ),
-            const Icon(Icons.volume_up_rounded, color: AppColors.ink),
+            Icon(Icons.volume_up_rounded, color: colors.ink),
           ],
         ),
       ],
@@ -469,6 +479,7 @@ class _SimilarStations extends StatelessWidget {
     if (stations.isEmpty) {
       return const SizedBox.shrink();
     }
+    final colors = context.appPalette;
 
     return Column(
       children: [
@@ -483,15 +494,15 @@ class _SimilarStations extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.ink,
+                        color: colors.ink,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  const Icon(
+                  Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.inkMuted,
+                    color: colors.inkMuted,
                     size: 22,
                   ),
                 ],
@@ -532,6 +543,8 @@ class _SimilarStationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -547,7 +560,7 @@ class _SimilarStationTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadii.sm),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.ink.withValues(alpha: 0.08),
+                      color: colors.shadow.withValues(alpha: 0.14),
                       offset: const Offset(0, 8),
                       blurRadius: 18,
                     ),
@@ -561,7 +574,7 @@ class _SimilarStationTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.ink,
+                  color: colors.ink,
                   fontWeight: FontWeight.w700,
                 ),
               ),

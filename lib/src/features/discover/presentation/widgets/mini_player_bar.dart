@@ -26,6 +26,7 @@ class MiniPlayerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
     const borderRadius = BorderRadius.vertical(
       top: Radius.circular(AppRadii.lg),
     );
@@ -37,19 +38,19 @@ class MiniPlayerBar extends StatelessWidget {
           borderRadius: borderRadius,
           boxShadow: [
             BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.16),
+              color: colors.shadow.withValues(alpha: 0.22),
               offset: const Offset(0, -8),
               blurRadius: 24,
             ),
             BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.10),
+              color: colors.shadow.withValues(alpha: 0.14),
               offset: const Offset(0, -2),
               blurRadius: 10,
             ),
           ],
         ),
         child: Material(
-          color: AppColors.surface,
+          color: colors.surface,
           borderRadius: borderRadius,
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -83,7 +84,7 @@ class MiniPlayerBar extends StatelessWidget {
                             context,
                           ).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
+                            color: colors.ink,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
@@ -92,7 +93,7 @@ class MiniPlayerBar extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppColors.inkMuted),
+                              ?.copyWith(color: colors.inkMuted),
                         ),
                       ],
                     ),
@@ -113,7 +114,7 @@ class MiniPlayerBar extends StatelessWidget {
                               playbackStatus == RadioPlaybackStatus.playing
                                   ? Icons.pause_rounded
                                   : Icons.play_arrow_rounded,
-                              color: AppColors.ink,
+                              color: colors.ink,
                               size: 32,
                             ),
                   ),

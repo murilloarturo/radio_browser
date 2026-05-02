@@ -17,14 +17,16 @@ class PlayStationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     if (label == null) {
       return IconButton.filled(
         tooltip: Localizable.playStation.text,
         onPressed: isLoading ? null : onPressed,
         style: IconButton.styleFrom(
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.brand,
-          side: const BorderSide(color: AppColors.ink),
+          backgroundColor: colors.surface,
+          foregroundColor: colors.brand,
+          side: BorderSide(color: colors.ink),
           minimumSize: const Size.square(44),
         ),
         icon:

@@ -30,6 +30,7 @@ class RecommendedStationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +39,7 @@ class RecommendedStationCard extends StatelessWidget {
           Text(
             title!.text,
             style: textTheme.titleMedium?.copyWith(
-              color: AppColors.ink,
+              color: colors.ink,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -46,12 +47,12 @@ class RecommendedStationCard extends StatelessWidget {
         ],
         DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.line),
+            color: colors.surface,
+            border: Border.all(color: colors.line),
             borderRadius: BorderRadius.circular(AppRadii.sm),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.04),
+                color: colors.shadow.withValues(alpha: 0.08),
                 offset: const Offset(0, 8),
                 blurRadius: 20,
               ),
@@ -77,7 +78,7 @@ class RecommendedStationCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.ink,
+                                color: colors.ink,
                               ),
                             ),
                           ),
@@ -88,7 +89,7 @@ class RecommendedStationCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink,
+                          color: colors.ink,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
@@ -97,7 +98,7 @@ class RecommendedStationCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink,
+                          color: colors.ink,
                           fontStyle: FontStyle.italic,
                         ),
                       ),

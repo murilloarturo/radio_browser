@@ -17,6 +17,8 @@ class DiscoverFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -33,14 +35,12 @@ class DiscoverFilterChips extends StatelessWidget {
             showCheckmark: false,
             onSelected: (_) => onFilterSelected(filter),
             labelStyle: TextStyle(
-              color: isSelected ? AppColors.surface : AppColors.ink,
+              color: isSelected ? colors.onBrand : colors.ink,
               fontWeight: FontWeight.w600,
             ),
-            selectedColor: AppColors.brand,
-            backgroundColor: AppColors.surface,
-            side: BorderSide(
-              color: isSelected ? AppColors.brand : AppColors.line,
-            ),
+            selectedColor: colors.brand,
+            backgroundColor: colors.surface,
+            side: BorderSide(color: isSelected ? colors.brand : colors.line),
           );
         },
       ),

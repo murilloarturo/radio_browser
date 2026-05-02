@@ -17,9 +17,11 @@ class AppLoadingBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.softLine,
+        color: colors.softLine,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: SizedBox(width: width, height: height),

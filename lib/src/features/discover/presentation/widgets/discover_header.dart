@@ -8,13 +8,15 @@ class DiscoverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return Row(
       children: [
         Expanded(
           child: Text(
             Localizable.appTitle.text,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.ink,
+              color: colors.ink,
               fontWeight: FontWeight.w800,
             ),
           ),

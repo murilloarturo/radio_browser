@@ -254,10 +254,12 @@ class _FavoritesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return Text(
       Localizable.favoritesTitle.text,
       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-        color: AppColors.ink,
+        color: colors.ink,
         fontWeight: FontWeight.w800,
       ),
     );

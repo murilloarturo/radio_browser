@@ -14,6 +14,7 @@ class AiRecommendationEmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,19 +22,19 @@ class AiRecommendationEmptyCard extends StatelessWidget {
         Text(
           Localizable.recommendedForYou.text,
           style: textTheme.titleMedium?.copyWith(
-            color: AppColors.ink,
+            color: colors.ink,
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
         DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.line),
+            color: colors.surface,
+            border: Border.all(color: colors.line),
             borderRadius: BorderRadius.circular(AppRadii.sm),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.04),
+                color: colors.shadow.withValues(alpha: 0.08),
                 offset: const Offset(0, 8),
                 blurRadius: 20,
               ),
@@ -63,7 +64,7 @@ class AiRecommendationEmptyCard extends StatelessWidget {
                             ? Localizable.aiRecommendationLoadingTitle.text
                             : Localizable.aiRecommendationEmptyTitle.text,
                         style: textTheme.titleSmall?.copyWith(
-                          color: AppColors.ink,
+                          color: colors.ink,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -73,7 +74,7 @@ class AiRecommendationEmptyCard extends StatelessWidget {
                             ? Localizable.aiRecommendationLoadingMessage.text
                             : Localizable.aiRecommendationEmptyMessage.text,
                         style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.inkMuted,
+                          color: colors.inkMuted,
                         ),
                       ),
                       if (isLoading) ...[

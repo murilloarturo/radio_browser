@@ -17,6 +17,7 @@ class AppErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Center(
       child: Padding(
@@ -24,11 +25,7 @@ class AppErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              size: 40,
-              color: AppColors.danger,
-            ),
+            Icon(Icons.wifi_off_rounded, size: 40, color: colors.danger),
             const SizedBox(height: AppSpacing.md),
             Text(
               Localizable.stationsCouldNotLoadTitle.text,
@@ -40,7 +37,7 @@ class AppErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
+              style: textTheme.bodyMedium?.copyWith(color: colors.inkMuted),
             ),
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(

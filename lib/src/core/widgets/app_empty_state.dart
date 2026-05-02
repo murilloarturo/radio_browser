@@ -20,6 +20,7 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Center(
       child: Padding(
@@ -28,11 +29,7 @@ class AppEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (assetPath == null)
-              const Icon(
-                Icons.radio_outlined,
-                size: 40,
-                color: AppColors.inkMuted,
-              )
+              Icon(Icons.radio_outlined, size: 40, color: colors.inkMuted)
             else
               Image.asset(
                 assetPath!,
@@ -45,7 +42,7 @@ class AppEmptyState extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: textTheme.titleMedium?.copyWith(
-                color: AppColors.ink,
+                color: colors.ink,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -53,7 +50,7 @@ class AppEmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted),
+              style: textTheme.bodyMedium?.copyWith(color: colors.inkMuted),
             ),
           ],
         ),

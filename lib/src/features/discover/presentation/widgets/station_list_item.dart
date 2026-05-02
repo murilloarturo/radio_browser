@@ -27,6 +27,7 @@ class StationListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -44,7 +45,7 @@ class StationListItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.titleSmall?.copyWith(
-                    color: AppColors.ink,
+                    color: colors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -53,25 +54,19 @@ class StationListItem extends StatelessWidget {
                   _locationLine(station),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: colors.inkMuted),
                 ),
                 Text(
                   _tagsLine(station),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: colors.inkMuted),
                 ),
                 Text(
                   _streamLine(station),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.inkMuted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: colors.inkMuted),
                 ),
               ],
             ),

@@ -25,10 +25,12 @@ class StationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.line),
+        color: colors.surface,
+        border: Border.all(color: colors.line),
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: Column(
@@ -46,7 +48,7 @@ class StationList extends StatelessWidget {
               onFavoriteToggle: () => onFavoriteToggle(indexedStation.$2),
             ),
             if (indexedStation.$1 != stations.length - 1)
-              const Divider(height: 1, color: AppColors.line),
+              Divider(height: 1, color: colors.line),
           ],
         ],
       ),

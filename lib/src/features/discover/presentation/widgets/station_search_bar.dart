@@ -50,10 +50,12 @@ class _StationSearchBarState extends State<StationSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.line),
+        color: colors.surface,
+        border: Border.all(color: colors.line),
         borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: SizedBox(
@@ -61,11 +63,12 @@ class _StationSearchBarState extends State<StationSearchBar> {
         child: Row(
           children: [
             const SizedBox(width: AppSpacing.sm),
-            const Icon(Icons.search_rounded, color: AppColors.ink, size: 30),
+            Icon(Icons.search_rounded, color: colors.ink, size: 30),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: TextField(
                 controller: _controller,
+                style: TextStyle(color: colors.ink),
                 textInputAction: TextInputAction.search,
                 onSubmitted: widget.onSubmitted,
                 decoration: InputDecoration(
@@ -94,8 +97,8 @@ class _StationSearchBarState extends State<StationSearchBar> {
                             : Icons.mic_none_rounded,
                         color:
                             widget.isVoiceSearchRecording
-                                ? AppColors.danger
-                                : AppColors.ink,
+                                ? colors.danger
+                                : colors.ink,
                       ),
             ),
           ],

@@ -57,7 +57,7 @@ class DiscoverPage extends StatelessWidget {
             children: [
               Expanded(
                 child: RefreshIndicator(
-                  color: AppColors.brand,
+                  color: context.appPalette.brand,
                   onRefresh: context.read<DiscoverCubit>().refresh,
                   child: _DiscoverBody(state: state),
                 ),

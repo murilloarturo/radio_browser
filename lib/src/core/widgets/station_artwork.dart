@@ -18,13 +18,14 @@ class StationArtwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.circular(AppRadii.xs);
+    final colors = context.appPalette;
 
     final artwork = ClipRRect(
       borderRadius: borderRadius,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.artworkBase,
-          border: Border.all(color: AppColors.line),
+          color: colors.artworkBase,
+          border: Border.all(color: colors.line),
           borderRadius: borderRadius,
         ),
         child: SizedBox.square(
@@ -55,10 +56,8 @@ class _StationArtworkPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Icon(
-      Icons.image_outlined,
-      color: AppColors.artworkGlyph,
-      size: 32,
-    );
+    final colors = context.appPalette;
+
+    return Icon(Icons.image_outlined, color: colors.artworkGlyph, size: 32);
   }
 }

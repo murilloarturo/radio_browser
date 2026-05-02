@@ -8,7 +8,6 @@ import '../features/favorites/presentation/pages/favorites_page.dart';
 import 'di/service_locator.dart';
 import 'navigation/app_bottom_navigation.dart';
 import 'navigation/app_tab.dart';
-import 'theme/app_colors.dart';
 
 class RadioBrowserShell extends StatefulWidget {
   const RadioBrowserShell({super.key});
@@ -27,7 +26,6 @@ class _RadioBrowserShellState extends State<RadioBrowserShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.paper,
       body: IndexedStack(
         index: _selectedTab.index,
         children: [

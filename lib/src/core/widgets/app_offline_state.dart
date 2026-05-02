@@ -13,6 +13,7 @@ class AppOfflineState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colors = context.appPalette;
 
     return Center(
       child: Padding(
@@ -31,7 +32,7 @@ class AppOfflineState extends StatelessWidget {
               Localizable.noConnectionTitle.text,
               textAlign: TextAlign.center,
               style: textTheme.titleLarge?.copyWith(
-                color: AppColors.ink,
+                color: colors.ink,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -40,7 +41,7 @@ class AppOfflineState extends StatelessWidget {
               Localizable.noConnectionMessage.text,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.inkMuted,
+                color: colors.inkMuted,
                 height: 1.4,
               ),
             ),

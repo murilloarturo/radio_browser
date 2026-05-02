@@ -15,6 +15,7 @@ class FavoritePillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
     final icon = Icon(
       isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
     );
@@ -26,8 +27,8 @@ class FavoritePillButton extends StatelessWidget {
       return FilledButton.icon(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.brand,
-          foregroundColor: AppColors.surface,
+          backgroundColor: colors.brand,
+          foregroundColor: colors.onBrand,
           minimumSize: const Size(44, 40),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -39,9 +40,9 @@ class FavoritePillButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.brand,
+        foregroundColor: colors.brand,
         minimumSize: const Size(44, 40),
-        side: const BorderSide(color: AppColors.brand),
+        side: BorderSide(color: colors.brand),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       icon: icon,

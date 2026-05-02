@@ -15,6 +15,8 @@ class FavoriteIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return IconButton(
       tooltip:
           isFavorite
@@ -23,7 +25,7 @@ class FavoriteIconButton extends StatelessWidget {
       onPressed: onPressed,
       icon: Icon(
         isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-        color: isFavorite ? AppColors.danger : AppColors.ink,
+        color: isFavorite ? colors.danger : colors.ink,
       ),
     );
   }

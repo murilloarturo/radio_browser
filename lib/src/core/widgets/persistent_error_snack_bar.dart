@@ -5,6 +5,10 @@ SnackBar persistentErrorSnackBar({
   required String message,
   required String closeTooltip,
 }) {
+  final theme = Theme.of(context);
+  final closeIconColor =
+      theme.snackBarTheme.closeIconColor ?? theme.colorScheme.onInverseSurface;
+
   return SnackBar(
     duration: const Duration(days: 365),
     behavior: SnackBarBehavior.floating,
@@ -16,7 +20,7 @@ SnackBar persistentErrorSnackBar({
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
-          color: Colors.white,
+          color: closeIconColor,
           icon: const Icon(Icons.close_rounded),
         ),
       ],

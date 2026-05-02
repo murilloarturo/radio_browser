@@ -17,10 +17,12 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appPalette;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.line)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.line)),
       ),
       child: SafeArea(
         top: false,
@@ -73,7 +75,8 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppColors.brand : AppColors.inkMuted;
+    final colors = context.appPalette;
+    final color = isSelected ? colors.brand : colors.inkMuted;
 
     return Semantics(
       selected: isSelected,
