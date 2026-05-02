@@ -14,7 +14,9 @@ The first implementation pass was based on this initial wireframe for the discov
 
 ## Demo Video
 
-A short walkthrough video will be added here later.
+
+https://github.com/user-attachments/assets/2b1810c4-3523-47a5-a876-319d6daf34b0
+
 
 ## Requirements
 
