@@ -1,6 +1,6 @@
 # RadioBrowser Product Requirements Document
 
-Last updated: 2026-05-01
+Last updated: 2026-05-02
 
 ## Overview
 
@@ -389,6 +389,56 @@ Add optional AI-assisted discovery after the core radio app is working. AI shoul
 - AI repository tests with mocked HTTP/service responses.
 - BLoC/Cubit tests for disabled, loading, success, empty, and failure states.
 
+## Phase 6: System Player Surfaces
+
+Commit message:
+
+```text
+feat: add system player surfaces
+```
+
+### Goal
+
+Keep playback visible outside the app through native platform surfaces: Dynamic Island / Live Activities on supported iPhones, iOS lock screen / Control Center now-playing controls, and Android media-style notifications.
+
+### Expected Files
+
+- `lib/src/features/player/data/`
+- `lib/src/features/player/domain/`
+- `lib/src/features/player/presentation/`
+- `ios/Runner/`
+- `android/app/src/main/`
+- `README.md`
+- `test/features/player/`
+
+### Requirements
+
+- Add a single app-facing abstraction for publishing current playback metadata and actions to system surfaces.
+- On iOS:
+  - Publish now-playing metadata for lock screen and Control Center.
+  - Add Dynamic Island / Live Activity support only where the OS and device support it.
+  - Keep unsupported iOS devices working through regular now-playing controls.
+- On Android:
+  - Add a persistent media-style playback notification while a stream is active.
+  - Expose play/pause controls through Android media session integration.
+  - Make notification lifecycle match app playback state.
+- Keep native/platform details out of Cubits and UI widgets.
+- Do not show stale metadata after playback stops.
+
+### Acceptance Criteria
+
+- Starting a station publishes station name, artwork when available, and playback state to system surfaces.
+- Pausing/resuming updates system controls without resetting app state unexpectedly.
+- Stopping playback removes or deactivates the persistent system surface.
+- Android users have an always-visible media notification during playback.
+- iOS users have lock screen / Control Center controls, and Dynamic Island where supported.
+
+### Tests
+
+- Unit tests for the system player publisher abstraction.
+- Player repository tests verifying publish/update/clear calls.
+- Manual QA on iOS simulator/device and Android emulator/device because Dynamic Island and media notifications are platform-specific.
+
 ## Cross-Phase UX Requirements
 
 - Prefer real data as soon as the relevant data layer exists.
@@ -397,6 +447,7 @@ Add optional AI-assisted discovery after the core radio app is working. AI shoul
 - Avoid hiding errors; show clear retry paths.
 - Preserve playback context while browsing.
 - Make favorite state obvious wherever a station can be selected or played.
+- Respect system light/dark mode without forcing a single theme.
 
 ## Cross-Phase Engineering Requirements
 
