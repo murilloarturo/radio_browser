@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 import '../../../../core/error/app_failure.dart';
 import '../../../../core/localization/localizable.dart';
@@ -59,7 +60,9 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
       );
 
       await _configureAudioSession();
-      await _audioPlayer.setAudioSource(AudioSource.uri(streamUri));
+      await _audioPlayer.setAudioSource(
+        AudioSource.uri(streamUri, tag: _mediaItemFor(station)),
+      );
       unawaited(
         _audioPlayer.play().catchError((Object error) {
           _handlePlayerError(error);
@@ -162,6 +165,41 @@ class JustAudioRadioPlayerRepository implements RadioPlayerRepository {
     await session.configure(const AudioSessionConfiguration.music());
     await session.setActive(true);
     _audioSessionConfigured = true;
+  }
+
+  MediaItem _mediaItemFor(Station station) {
+    return MediaItem(
+      id: station.stationUuid,
+      album: Localizable.appTitle.text,
+      title: station.name,
+      artist: _stationSubtitle(station),
+      artUri: _stationArtworkUri(station),
+    );
+  }
+
+  Uri? _stationArtworkUri(Station station) {
+    final faviconUrl = station.faviconUrl;
+    if (faviconUrl == null || faviconUrl.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(faviconUrl);
+    return uri != null && uri.hasScheme ? uri : null;
+  }
+
+  String _stationSubtitle(Station station) {
+    final parts = <String>[
+      if (station.countryCode != null && station.countryCode!.isNotEmpty)
+        station.countryCode!,
+      if (station.language != null && station.language!.isNotEmpty)
+        station.language!,
+    ];
+
+    if (parts.isEmpty) {
+      return Localizable.appTitle.text;
+    }
+
+    return parts.join(Localizable.metadataSeparator.text);
   }
 
   void _handlePlayerState(PlayerState playerState) {

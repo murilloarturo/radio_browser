@@ -5,6 +5,7 @@ class AppAssets {
   static const favoritesEmptyIllustration =
       'assets/illustrations/favorites_empty.PNG';
   static const botRadioIllustration = 'assets/illustrations/bot_radio.PNG';
+  static const noResultsIllustration = 'assets/illustrations/no_results.PNG';
   static const splashScreenIllustration =
       'assets/illustrations/splash_screen.png';
 }

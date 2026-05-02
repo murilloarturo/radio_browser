@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/assets/app_assets.dart';
 import '../../../../core/localization/localizable.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
@@ -16,7 +17,7 @@ import '../widgets/discover_filter_chips.dart';
 import '../widgets/discover_header.dart';
 import '../widgets/discover_loading_view.dart';
 import '../widgets/mini_player_bar.dart';
-import '../widgets/recommended_station_card.dart';
+import '../widgets/recommended_stations_rail.dart';
 import '../widgets/station_list.dart';
 import '../widgets/station_search_bar.dart';
 import '../../../player/presentation/pages/full_player_page.dart';
@@ -258,6 +259,8 @@ class _DiscoverBody extends StatelessWidget {
                   state.searchTerm.isEmpty
                       ? Localizable.noStationsForFilterMessage.text
                       : Localizable.noStationsForSearchMessage.text,
+              assetPath: AppAssets.noResultsIllustration,
+              assetSemanticLabel: Localizable.noStationsFoundTitle.text,
             ),
           ),
         ],
@@ -283,23 +286,13 @@ class _DiscoverBody extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         if (state.hasAiRecommendation) ...[
-          RecommendedStationCard(
-            station: state.recommendedStation!,
-            isFavorite: context.read<DiscoverCubit>().isFavorite(
-              state.recommendedStation!.stationUuid,
-            ),
-            isLoading:
-                state.isPlaybackLoading &&
-                state.activeStation?.stationUuid ==
-                    state.recommendedStation!.stationUuid,
-            onPlay:
-                () => context.read<DiscoverCubit>().playStation(
-                  state.recommendedStation!,
-                ),
-            onFavoriteToggle:
-                () => context.read<DiscoverCubit>().toggleFavorite(
-                  state.recommendedStation!,
-                ),
+          RecommendedStationsRail(
+            stations: state.recommendedStations,
+            favoriteStationUuids: state.favoriteStationUuids,
+            activeStationUuid: state.activeStation?.stationUuid,
+            isPlaybackLoading: state.isPlaybackLoading,
+            onPlay: context.read<DiscoverCubit>().playStation,
+            onFavoriteToggle: context.read<DiscoverCubit>().toggleFavorite,
           ),
           const SizedBox(height: AppSpacing.lg),
         ] else ...[

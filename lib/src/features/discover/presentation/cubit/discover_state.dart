@@ -16,6 +16,7 @@ class DiscoverState extends Equatable {
   const DiscoverState({
     this.status = DiscoverStatus.initial,
     this.stations = const <Station>[],
+    this.recommendedStations = const <Station>[],
     this.genres = const <StationGenre>[],
     this.favoriteStations = const <FavoriteStation>[],
     this.activeFilter = DiscoverFilter.popular,
@@ -34,6 +35,7 @@ class DiscoverState extends Equatable {
 
   final DiscoverStatus status;
   final List<Station> stations;
+  final List<Station> recommendedStations;
   final List<StationGenre> genres;
   final List<FavoriteStation> favoriteStations;
   final DiscoverFilter activeFilter;
@@ -63,7 +65,7 @@ class DiscoverState extends Equatable {
 
   bool get hasAiRecommendation {
     return aiRecommendationStatus == AiRecommendationStatus.ready &&
-        recommendedStation != null;
+        recommendedStations.isNotEmpty;
   }
 
   bool get isAiRecommendationLoading {
@@ -74,17 +76,10 @@ class DiscoverState extends Equatable {
     return favoriteStations.map((station) => station.stationUuid).toSet();
   }
 
-  Station? get recommendedStation {
-    if (stations.isEmpty) {
-      return null;
-    }
-
-    return stations.first;
-  }
-
   DiscoverState copyWith({
     DiscoverStatus? status,
     List<Station>? stations,
+    List<Station>? recommendedStations,
     List<StationGenre>? genres,
     List<FavoriteStation>? favoriteStations,
     DiscoverFilter? activeFilter,
@@ -107,6 +102,7 @@ class DiscoverState extends Equatable {
     return DiscoverState(
       status: status ?? this.status,
       stations: stations ?? this.stations,
+      recommendedStations: recommendedStations ?? this.recommendedStations,
       genres: genres ?? this.genres,
       favoriteStations: favoriteStations ?? this.favoriteStations,
       activeFilter: activeFilter ?? this.activeFilter,
@@ -139,6 +135,7 @@ class DiscoverState extends Equatable {
   List<Object?> get props => [
     status,
     stations,
+    recommendedStations,
     genres,
     favoriteStations,
     activeFilter,

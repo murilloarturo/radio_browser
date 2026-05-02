@@ -1,2 +1,6 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Flutter 3.29 does not consistently stage Xcode's split debug dylib into
+// build/ios/iphoneos/Runner.app for physical-device installs.
+ENABLE_DEBUG_DYLIB = NO

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -81,6 +83,7 @@ void main() {
   late MockWatchRadioPlayback watchRadioPlayback;
   late Station station;
   late FavoriteStation favoriteStation;
+  late StreamController<Result<List<FavoriteStation>>> favoritesController;
 
   DiscoverCubit buildCubit() {
     return DiscoverCubit(
@@ -262,13 +265,130 @@ void main() {
       );
     },
     build: buildCubit,
-    act: (cubit) => cubit.search('focus music'),
+    act: (cubit) async {
+      await cubit.search('focus music');
+      await pumpEventQueue();
+    },
     verify: (cubit) {
       expect(cubit.state.stations.map((station) => station.stationUuid), [
         'station-2',
         station.stationUuid,
       ]);
+      expect(
+        cubit.state.aiRecommendationStatus,
+        AiRecommendationStatus.initial,
+      );
+      expect(cubit.state.recommendedStations, isEmpty);
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'shows stations before background OpenAI ranking completes',
+    setUp: () {
+      final rankingCompleter = Completer<Result<List<Station>>>();
+      addTearDown(() {
+        if (!rankingCompleter.isCompleted) {
+          rankingCompleter.complete(Success<List<Station>>([station]));
+        }
+      });
+      when(() => rankStationsWithAi.isEnabled).thenReturn(true);
+      when(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).thenAnswer((_) => rankingCompleter.future);
+    },
+    build: buildCubit,
+    act: (cubit) => cubit.load(),
+    verify: (cubit) {
+      expect(cubit.state.status, DiscoverStatus.success);
+      expect(cubit.state.stations, [station]);
+      expect(cubit.state.recommendedStations, isEmpty);
+      expect(
+        cubit.state.aiRecommendationStatus,
+        AiRecommendationStatus.loading,
+      );
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'keeps stations visible when background OpenAI ranking fails',
+    setUp: () {
+      when(() => rankStationsWithAi.isEnabled).thenReturn(true);
+      when(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).thenAnswer(
+        (_) async => const Failure<List<Station>>(
+          DecodingFailure('Unable to read the OpenAI response.'),
+        ),
+      );
+    },
+    build: buildCubit,
+    act: (cubit) async {
+      await cubit.load();
+      await pumpEventQueue();
+    },
+    verify: (cubit) {
+      expect(cubit.state.status, DiscoverStatus.success);
+      expect(cubit.state.stations, [station]);
+      expect(cubit.state.recommendedStations, isEmpty);
+      expect(
+        cubit.state.aiRecommendationStatus,
+        AiRecommendationStatus.unavailable,
+      );
+      expect(
+        cubit.state.aiFailureMessage,
+        'Unable to read the OpenAI response.',
+      );
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
+    'calculates recommendations only on the first successful app load',
+    setUp: () {
+      favoritesController = StreamController<Result<List<FavoriteStation>>>();
+      addTearDown(favoritesController.close);
+      when(
+        () => watchFavoriteStations(),
+      ).thenAnswer((_) => favoritesController.stream);
+      when(() => rankStationsWithAi.isEnabled).thenReturn(true);
+      when(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).thenAnswer((_) async => Success<List<Station>>([station]));
+    },
+    build: buildCubit,
+    act: (cubit) async {
+      await cubit.load();
+      await pumpEventQueue();
+
+      favoritesController.add(
+        Success<List<FavoriteStation>>([favoriteStation]),
+      );
+      await pumpEventQueue();
+
+      await cubit.selectFilter(DiscoverFilter.jazz);
+      await pumpEventQueue();
+    },
+    verify: (cubit) {
+      verify(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).called(1);
       expect(cubit.state.aiRecommendationStatus, AiRecommendationStatus.ready);
+      expect(cubit.state.recommendedStations, [station]);
     },
   );
 

@@ -27,11 +27,14 @@ class StationSearchBar extends StatefulWidget {
 
 class _StationSearchBarState extends State<StationSearchBar> {
   late final TextEditingController _controller;
+  late bool _hasText;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
+    _hasText = _controller.text.isNotEmpty;
+    _controller.addListener(_syncTrailingAction);
   }
 
   @override
@@ -44,8 +47,27 @@ class _StationSearchBarState extends State<StationSearchBar> {
 
   @override
   void dispose() {
+    _controller.removeListener(_syncTrailingAction);
     _controller.dispose();
     super.dispose();
+  }
+
+  void _syncTrailingAction() {
+    final nextHasText = _controller.text.isNotEmpty;
+    if (nextHasText == _hasText) {
+      return;
+    }
+
+    setState(() => _hasText = nextHasText);
+  }
+
+  void _clearSearch() {
+    if (_controller.text.isEmpty) {
+      return;
+    }
+
+    _controller.clear();
+    widget.onSubmitted('');
   }
 
   @override
@@ -78,29 +100,38 @@ class _StationSearchBarState extends State<StationSearchBar> {
                 ),
               ),
             ),
-            IconButton(
-              tooltip:
-                  widget.isVoiceSearchRecording
-                      ? Localizable.voiceSearchStop.text
-                      : Localizable.voiceSearchStart.text,
-              onPressed:
-                  widget.isVoiceSearchProcessing ? null : widget.onVoicePressed,
-              icon:
-                  widget.isVoiceSearchProcessing
-                      ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : Icon(
-                        widget.isVoiceSearchRecording
-                            ? Icons.stop_rounded
-                            : Icons.mic_none_rounded,
-                        color:
-                            widget.isVoiceSearchRecording
-                                ? colors.danger
-                                : colors.ink,
-                      ),
-            ),
+            if (_hasText)
+              IconButton(
+                tooltip: Localizable.clearSearch.text,
+                onPressed: _clearSearch,
+                icon: Icon(Icons.close_rounded, color: colors.ink),
+              )
+            else
+              IconButton(
+                tooltip:
+                    widget.isVoiceSearchRecording
+                        ? Localizable.voiceSearchStop.text
+                        : Localizable.voiceSearchStart.text,
+                onPressed:
+                    widget.isVoiceSearchProcessing
+                        ? null
+                        : widget.onVoicePressed,
+                icon:
+                    widget.isVoiceSearchProcessing
+                        ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : Icon(
+                          widget.isVoiceSearchRecording
+                              ? Icons.stop_rounded
+                              : Icons.mic_none_rounded,
+                          color:
+                              widget.isVoiceSearchRecording
+                                  ? colors.danger
+                                  : colors.ink,
+                        ),
+              ),
           ],
         ),
       ),

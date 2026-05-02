@@ -81,8 +81,13 @@ class DiscoverCubit extends Cubit<DiscoverState> {
 
   StreamSubscription<Result<List<FavoriteStation>>>? _favoritesSubscription;
   StreamSubscription<RadioPlaybackSnapshot>? _playbackSubscription;
+  int _stationRequestId = 0;
+  int _searchRankingRequestId = 0;
+  int _recommendationRequestId = 0;
+  bool _hasStartedInitialRecommendations = false;
 
   Future<void> load() async {
+    final requestId = _nextStationRequestId();
     _watchFavorites();
     _watchPlayback();
     emit(
@@ -94,51 +99,52 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     );
 
     final genresResult = await _getGenres();
+    if (isClosed || requestId != _stationRequestId) {
+      return;
+    }
+
     genresResult.when(
       success: (genres) => emit(state.copyWith(genres: genres)),
       failure: (_) {},
     );
 
-    await _loadStations(state.activeFilter.query);
+    await _loadStations(state.activeFilter.query, requestId: requestId);
   }
 
   Future<void> refresh() {
+    final requestId = _nextStationRequestId();
     emit(
-      state.copyWith(
-        status: DiscoverStatus.loading,
-        aiRecommendationStatus: _pendingAiRecommendationStatus(),
-        clearFailureMessage: true,
-      ),
+      state.copyWith(status: DiscoverStatus.loading, clearFailureMessage: true),
     );
 
     if (state.searchTerm.trim().isNotEmpty && _rankStationsWithAi.isEnabled) {
-      return _loadAiSearchStations(state.searchTerm);
+      return _loadAiSearchStations(state.searchTerm, requestId: requestId);
     }
 
-    return _loadStations(_queryForCurrentSelection());
+    return _loadStations(_queryForCurrentSelection(), requestId: requestId);
   }
 
   Future<void> selectFilter(DiscoverFilter filter) async {
+    final requestId = _nextStationRequestId();
     emit(
       state.copyWith(
         activeFilter: filter,
         searchTerm: '',
         status: DiscoverStatus.loading,
-        aiRecommendationStatus: _pendingAiRecommendationStatus(),
         clearFailureMessage: true,
       ),
     );
 
-    await _loadStations(filter.query);
+    await _loadStations(filter.query, requestId: requestId);
   }
 
   Future<void> search(String term) async {
     final normalizedTerm = term.trim();
+    final requestId = _nextStationRequestId();
     emit(
       state.copyWith(
         searchTerm: normalizedTerm,
         status: DiscoverStatus.loading,
-        aiRecommendationStatus: _pendingAiRecommendationStatus(),
         clearFailureMessage: true,
       ),
     );
@@ -148,11 +154,12 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         _queryForCurrentSelection(
           name: normalizedTerm.isEmpty ? null : normalizedTerm,
         ),
+        requestId: requestId,
       );
       return;
     }
 
-    await _loadAiSearchStations(normalizedTerm);
+    await _loadAiSearchStations(normalizedTerm, requestId: requestId);
   }
 
   Future<void> toggleVoiceSearch() async {
@@ -288,40 +295,50 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     return state.favoriteStationUuids.contains(stationUuid);
   }
 
-  Future<void> _loadStations(StationSearchQuery query) async {
+  Future<void> _loadStations(
+    StationSearchQuery query, {
+    required int requestId,
+  }) async {
     final result =
         state.searchTerm.isEmpty && query.name == null
             ? await _getStations(query: query)
             : await _searchStations(query);
 
+    if (isClosed || requestId != _stationRequestId) {
+      return;
+    }
+
     switch (result) {
       case Success<List<Station>>(value: final stations):
-        final rankResult = await _rankStationsForCurrentContext(
-          stations: stations,
-          query: query,
-        );
         emit(
           state.copyWith(
             status: DiscoverStatus.success,
-            stations: rankResult.stations,
-            aiRecommendationStatus: _resolvedAiRecommendationStatus(rankResult),
-            aiFailureMessage: rankResult.failure?.message,
-            clearAiFailureMessage: rankResult.failure == null,
+            stations: stations,
+            clearAiFailureMessage: true,
             clearFailureMessage: true,
           ),
         );
+        _startInitialRecommendationsIfNeeded(stations: stations, query: query);
       case Failure<List<Station>>(failure: final failure):
-        _emitStationFailure(failure);
+        _emitStationFailure(failure, requestId: requestId);
     }
   }
 
-  Future<void> _loadAiSearchStations(String prompt) async {
-    final namedResult = await _searchStations(
-      _queryForCurrentSelection(name: prompt),
-    );
-    final broadResult = await _getStations(
-      query: _queryForCurrentSelection(name: null, limit: 80),
-    );
+  Future<void> _loadAiSearchStations(
+    String prompt, {
+    required int requestId,
+  }) async {
+    final results = await Future.wait<Result<List<Station>>>([
+      _searchStations(_queryForCurrentSelection(name: prompt)),
+      _getStations(query: _queryForCurrentSelection(name: null, limit: 80)),
+    ]);
+
+    if (isClosed || requestId != _stationRequestId) {
+      return;
+    }
+
+    final namedResult = results[0];
+    final broadResult = results[1];
 
     final stations = <Station>[];
     AppFailure? failure;
@@ -343,7 +360,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     final candidateStations = _uniqueStations(stations);
     if (candidateStations.isEmpty) {
       if (failure != null) {
-        _emitStationFailure(failure);
+        _emitStationFailure(failure, requestId: requestId);
         return;
       }
 
@@ -351,27 +368,24 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         state.copyWith(
           status: DiscoverStatus.success,
           stations: const <Station>[],
-          aiRecommendationStatus: AiRecommendationStatus.unavailable,
           clearFailureMessage: true,
         ),
       );
       return;
     }
 
-    final rankResult = await _rankStationsForPrompt(
-      prompt: prompt,
-      stations: candidateStations,
-    );
-
     emit(
       state.copyWith(
         status: DiscoverStatus.success,
-        stations: rankResult.stations,
-        aiRecommendationStatus: _resolvedAiRecommendationStatus(rankResult),
-        aiFailureMessage: rankResult.failure?.message,
-        clearAiFailureMessage: rankResult.failure == null,
+        stations: candidateStations,
+        clearAiFailureMessage: true,
         clearFailureMessage: true,
       ),
+    );
+    _startBackgroundSearchRanking(
+      prompt: prompt,
+      stations: candidateStations,
+      requestId: requestId,
     );
   }
 
@@ -416,21 +430,10 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     }
   }
 
-  Future<_AiRankedStations> _rankStationsForCurrentContext({
-    required List<Station> stations,
-    required StationSearchQuery query,
-  }) {
-    final prompt =
-        state.searchTerm.trim().isNotEmpty
-            ? state.searchTerm.trim()
-            : _recommendationPrompt(query);
-
-    return _rankStationsForPrompt(prompt: prompt, stations: stations);
-  }
-
   Future<_AiRankedStations> _rankStationsForPrompt({
     required String prompt,
     required List<Station> stations,
+    List<FavoriteStation>? favoriteStations,
   }) async {
     if (!_rankStationsWithAi.isEnabled) {
       logOpenAiApi('AI ranking skipped: OPENAI_API_KEY was not provided.');
@@ -443,7 +446,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     final result = await _rankStationsWithAi(
       prompt: prompt,
       candidateStations: candidates,
-      favoriteStations: state.favoriteStations,
+      favoriteStations: favoriteStations ?? state.favoriteStations,
     );
 
     return switch (result) {
@@ -492,17 +495,121 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     return 'Recommend stations similar to my favorites from these $filterContext.';
   }
 
-  void _emitStationFailure(AppFailure failure) {
+  void _emitStationFailure(AppFailure failure, {required int requestId}) {
+    if (isClosed || requestId != _stationRequestId) {
+      return;
+    }
+
     emit(
       state.copyWith(
         status: DiscoverStatus.failure,
-        aiRecommendationStatus: AiRecommendationStatus.unavailable,
         failureMessage: failure.message,
         failureKind:
             failure is NetworkFailure
                 ? DiscoverFailureKind.network
                 : DiscoverFailureKind.unknown,
       ),
+    );
+  }
+
+  int _nextStationRequestId() {
+    _searchRankingRequestId++;
+    return ++_stationRequestId;
+  }
+
+  void _startInitialRecommendationsIfNeeded({
+    required List<Station> stations,
+    required StationSearchQuery query,
+  }) {
+    if (_hasStartedInitialRecommendations) {
+      return;
+    }
+
+    _hasStartedInitialRecommendations = true;
+
+    if (!_rankStationsWithAi.isEnabled || stations.isEmpty) {
+      if (_rankStationsWithAi.isEnabled && stations.isEmpty) {
+        emit(
+          state.copyWith(
+            aiRecommendationStatus: AiRecommendationStatus.unavailable,
+          ),
+        );
+      }
+      return;
+    }
+
+    final recommendationRequestId = ++_recommendationRequestId;
+    final favoriteStations = state.favoriteStations;
+    final prompt = _recommendationPrompt(query);
+
+    unawaited(
+      _rankStationsForPrompt(
+            prompt: prompt,
+            stations: stations,
+            favoriteStations: favoriteStations,
+          )
+          .then((rankResult) {
+            if (isClosed ||
+                recommendationRequestId != _recommendationRequestId) {
+              return;
+            }
+
+            emit(
+              state.copyWith(
+                recommendedStations:
+                    rankResult.hasAiResponse
+                        ? rankResult.stations.take(5).toList(growable: false)
+                        : const <Station>[],
+                aiRecommendationStatus: _resolvedAiRecommendationStatus(
+                  rankResult,
+                ),
+                aiFailureMessage: rankResult.failure?.message,
+                clearAiFailureMessage: rankResult.failure == null,
+              ),
+            );
+          })
+          .catchError((Object error) {
+            logOpenAiApi('Initial AI recommendations failed: $error');
+          }),
+    );
+  }
+
+  void _startBackgroundSearchRanking({
+    required String prompt,
+    required List<Station> stations,
+    required int requestId,
+  }) {
+    if (!_rankStationsWithAi.isEnabled || stations.isEmpty) {
+      return;
+    }
+
+    final searchRankingRequestId = ++_searchRankingRequestId;
+    final favoriteStations = state.favoriteStations;
+
+    unawaited(
+      _rankStationsForPrompt(
+            prompt: prompt,
+            stations: stations,
+            favoriteStations: favoriteStations,
+          )
+          .then((rankResult) {
+            if (isClosed ||
+                requestId != _stationRequestId ||
+                searchRankingRequestId != _searchRankingRequestId) {
+              return;
+            }
+
+            emit(
+              state.copyWith(
+                stations: rankResult.stations,
+                aiFailureMessage: rankResult.failure?.message,
+                clearAiFailureMessage: rankResult.failure == null,
+              ),
+            );
+          })
+          .catchError((Object error) {
+            logOpenAiApi('Background AI ranking failed: $error');
+          }),
     );
   }
 
@@ -522,40 +629,15 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   }
 
   void _watchFavorites() {
-    _favoritesSubscription ??= _watchFavoriteStations().listen((result) async {
+    _favoritesSubscription ??= _watchFavoriteStations().listen((result) {
       switch (result) {
         case Success<List<FavoriteStation>>(value: final favorites):
           if (!isClosed) {
             emit(state.copyWith(favoriteStations: favorites));
-            await _rerankRecommendationAfterFavoritesChange();
           }
         case Failure<List<FavoriteStation>>():
       }
     });
-  }
-
-  Future<void> _rerankRecommendationAfterFavoritesChange() async {
-    if (!_rankStationsWithAi.isEnabled ||
-        state.stations.isEmpty ||
-        state.searchTerm.isNotEmpty) {
-      return;
-    }
-
-    final rankResult = await _rankStationsForPrompt(
-      prompt: _recommendationPrompt(_queryForCurrentSelection(name: null)),
-      stations: state.stations,
-    );
-
-    if (!isClosed) {
-      emit(
-        state.copyWith(
-          stations: rankResult.stations,
-          aiRecommendationStatus: _resolvedAiRecommendationStatus(rankResult),
-          aiFailureMessage: rankResult.failure?.message,
-          clearAiFailureMessage: rankResult.failure == null,
-        ),
-      );
-    }
   }
 
   AiRecommendationStatus _pendingAiRecommendationStatus() {

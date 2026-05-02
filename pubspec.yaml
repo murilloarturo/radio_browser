@@ -22,6 +22,7 @@ dependencies:
   sensors_plus: ^7.0.0
   record: ^6.2.0
   path_provider: ^2.1.5
+  just_audio_background: ^0.0.1-beta.17
 
 dev_dependencies:
   flutter_test:
@@ -37,4 +38,6 @@ flutter:
     - assets/illustrations/offline_radio.PNG
     - assets/illustrations/favorites_empty.PNG
     - assets/illustrations/bot_radio.PNG
+    - assets/illustrations/no_results.PNG
+    - assets/illustrations/app_icon.png
     - assets/illustrations/splash_screen.png

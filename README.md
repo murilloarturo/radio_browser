@@ -18,8 +18,54 @@ Core browsing, playback, favorites, and the first AI-assisted station discovery 
 
 ```sh
 flutter pub get
+flutter run --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+If you are running without AI features, you can omit the Dart define file:
+
+```sh
 flutter run
 ```
+
+### Running On Devices
+
+List available devices:
+
+```sh
+flutter devices
+```
+
+Run on an Android emulator or device:
+
+```sh
+flutter run -d <android-device-id> --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+Run on an iOS simulator:
+
+```sh
+flutter run -d <ios-simulator-id> --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+Run on a physical iPhone:
+
+```sh
+flutter run -d <iphone-device-id> --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+Some iOS 26 physical devices can crash in Flutter debug mode with:
+
+```text
+virtual_memory_posix.cc: error: mprotect failed: 13 (Permission denied)
+```
+
+That is a Flutter debug/JIT issue on device, not an app crash. Until your local Flutter SDK is upgraded to a version that contains the fix, run the iPhone in profile mode:
+
+```sh
+flutter run --profile -d <iphone-device-id> --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+Profile mode does not support hot reload, but it uses the same ahead-of-time compilation style as release builds and is useful for tester validation on real iPhones.
 
 ## OpenAI Setup
 
@@ -77,6 +123,17 @@ flutter run \
 
 Do not commit API keys. Without `OPENAI_API_KEY`, the app falls back to normal Radio Browser search and the voice search button shows that AI search is unavailable.
 
+The `.dart_defines/*.json` files are ignored by git, except for checked-in example files. Keep real keys only in `.dart_defines/openai.local.json` locally or inject them from encrypted CI secrets for release builds.
+
+## Background Audio And System Controls
+
+RadioBrowser uses `just_audio_background` on top of `just_audio` so playback can continue outside the app and publish metadata to system media controls:
+
+- iOS: lock screen, Control Center, and system Now Playing surfaces. On Dynamic Island devices, iOS decides when the active media session is shown there.
+- Android: foreground media notification with playback controls.
+
+If audio pauses when leaving the app, rebuild after running `flutter pub get`; the iOS app must include `UIBackgroundModes/audio`, and Android must include the media playback foreground service.
+
 ### CI Release Injection
 
 In CI, store the real key as an encrypted secret named `OPENAI_API_KEY`. Then generate a temporary Dart define file during the build and pass it to Flutter.
@@ -122,7 +179,7 @@ flutter test
 
 ## App Icon
 
-Launcher icons are generated from `assets/illustrations/splash_screen.png` using `flutter_launcher_icons`.
+Launcher icons are generated from `assets/illustrations/app_icon.png` using `flutter_launcher_icons`.
 
 Regenerate Android and iOS icons after changing the source image:
 
