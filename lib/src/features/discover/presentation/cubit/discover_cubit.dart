@@ -13,6 +13,7 @@ import '../../../ai_finder/domain/usecases/transcribe_station_search.dart';
 import '../../../favorites/domain/entities/favorite_station.dart';
 import '../../../favorites/domain/usecases/toggle_favorite_station.dart';
 import '../../../favorites/domain/usecases/watch_favorite_stations.dart';
+import '../../../favorites/presentation/mappers/favorite_station_mapper.dart';
 import '../../../favorites/presentation/mappers/station_favorite_mapper.dart';
 import '../../../player/domain/entities/radio_playback_snapshot.dart';
 import '../../../player/domain/usecases/pause_radio_station.dart';
@@ -85,6 +86,9 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   int _searchRankingRequestId = 0;
   int _recommendationRequestId = 0;
   bool _hasStartedInitialRecommendations = false;
+  bool _hasReceivedInitialFavorites = false;
+  List<Station>? _pendingInitialRecommendationStations;
+  StationSearchQuery? _pendingInitialRecommendationQuery;
 
   Future<void> load() async {
     final requestId = _nextStationRequestId();
@@ -478,7 +482,10 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     ];
   }
 
-  String _recommendationPrompt(StationSearchQuery query) {
+  String _recommendationPrompt(
+    StationSearchQuery query, {
+    required List<FavoriteStation> favoriteStations,
+  }) {
     final activeTags = <String>[
       if (query.tag != null) query.tag!,
       if (query.countryCode != null) query.countryCode!,
@@ -488,11 +495,11 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     final filterContext =
         activeTags.isEmpty ? 'popular stations' : activeTags.join(', ');
 
-    if (state.favoriteStations.isEmpty) {
-      return 'Recommend the best station from these $filterContext.';
+    if (favoriteStations.isEmpty) {
+      return 'Recommend 5 stations from these $filterContext.';
     }
 
-    return 'Recommend stations similar to my favorites from these $filterContext.';
+    return 'Recommend 5 stations similar to my favorites from these $filterContext.';
   }
 
   void _emitStationFailure(AppFailure failure, {required int requestId}) {
@@ -525,7 +532,29 @@ class DiscoverCubit extends Cubit<DiscoverState> {
       return;
     }
 
+    _pendingInitialRecommendationStations = stations;
+    _pendingInitialRecommendationQuery = query;
+    if (!_hasReceivedInitialFavorites) {
+      return;
+    }
+
+    _startPendingInitialRecommendations();
+  }
+
+  void _startPendingInitialRecommendations() {
+    if (_hasStartedInitialRecommendations) {
+      return;
+    }
+
+    final stations = _pendingInitialRecommendationStations;
+    final query = _pendingInitialRecommendationQuery;
+    if (stations == null || query == null) {
+      return;
+    }
+
     _hasStartedInitialRecommendations = true;
+    _pendingInitialRecommendationStations = null;
+    _pendingInitialRecommendationQuery = null;
 
     if (!_rankStationsWithAi.isEnabled || stations.isEmpty) {
       if (_rankStationsWithAi.isEnabled && stations.isEmpty) {
@@ -540,13 +569,22 @@ class DiscoverCubit extends Cubit<DiscoverState> {
 
     final recommendationRequestId = ++_recommendationRequestId;
     final favoriteStations = state.favoriteStations;
-    final prompt = _recommendationPrompt(query);
+    final prompt = _recommendationPrompt(
+      query,
+      favoriteStations: favoriteStations,
+    );
 
     unawaited(
-      _rankStationsForPrompt(
-            prompt: prompt,
+      _recommendationCandidatesFor(
             stations: stations,
             favoriteStations: favoriteStations,
+          )
+          .then(
+            (candidates) => _rankStationsForPrompt(
+              prompt: prompt,
+              stations: candidates,
+              favoriteStations: favoriteStations,
+            ),
           )
           .then((rankResult) {
             if (isClosed ||
@@ -570,8 +608,55 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           })
           .catchError((Object error) {
             logOpenAiApi('Initial AI recommendations failed: $error');
+            if (!isClosed &&
+                recommendationRequestId == _recommendationRequestId) {
+              emit(
+                state.copyWith(
+                  recommendedStations: const <Station>[],
+                  aiRecommendationStatus: AiRecommendationStatus.unavailable,
+                  aiFailureMessage: Localizable.aiSearchUnavailable.text,
+                ),
+              );
+            }
           }),
     );
+  }
+
+  Future<List<Station>> _recommendationCandidatesFor({
+    required List<Station> stations,
+    required List<FavoriteStation> favoriteStations,
+  }) async {
+    final candidates = <Station>[
+      ...favoriteStations.map((station) => station.toStation()),
+      ...stations,
+    ];
+
+    for (final tag in _favoriteRecommendationTags(favoriteStations).take(3)) {
+      final result = await _searchStations(
+        StationSearchQuery(tag: tag, limit: 30),
+      );
+      switch (result) {
+        case Success<List<Station>>(value: final taggedStations):
+          candidates.addAll(taggedStations);
+        case Failure<List<Station>>():
+      }
+    }
+
+    return _uniqueStations(candidates);
+  }
+
+  Iterable<String> _favoriteRecommendationTags(
+    List<FavoriteStation> favoriteStations,
+  ) sync* {
+    final seenTags = <String>{};
+    for (final favorite in favoriteStations) {
+      for (final tag in favorite.tags) {
+        final normalizedTag = tag.trim();
+        if (normalizedTag.isNotEmpty && seenTags.add(normalizedTag)) {
+          yield normalizedTag;
+        }
+      }
+    }
   }
 
   void _startBackgroundSearchRanking({
@@ -633,9 +718,19 @@ class DiscoverCubit extends Cubit<DiscoverState> {
       switch (result) {
         case Success<List<FavoriteStation>>(value: final favorites):
           if (!isClosed) {
+            final wasWaitingForInitialFavorites = !_hasReceivedInitialFavorites;
+            _hasReceivedInitialFavorites = true;
             emit(state.copyWith(favoriteStations: favorites));
+            if (wasWaitingForInitialFavorites) {
+              _startPendingInitialRecommendations();
+            }
           }
         case Failure<List<FavoriteStation>>():
+          final wasWaitingForInitialFavorites = !_hasReceivedInitialFavorites;
+          _hasReceivedInitialFavorites = true;
+          if (wasWaitingForInitialFavorites) {
+            _startPendingInitialRecommendations();
+          }
       }
     });
   }

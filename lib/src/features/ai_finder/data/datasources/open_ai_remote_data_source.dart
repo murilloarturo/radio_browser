@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../../../core/config/open_ai_config.dart';
+import '../../../../core/network/open_ai_api_logger.dart';
 import '../../../discover/domain/entities/station.dart';
 import '../../../favorites/domain/entities/favorite_station.dart';
 
@@ -38,6 +39,7 @@ class DioOpenAiRemoteDataSource implements OpenAiRemoteDataSource {
       data: {
         'model': _config.model,
         'instructions': _stationRankingInstructions,
+        if (_usesReasoningModel) 'reasoning': {'effort': 'minimal'},
         'input': [
           {
             'role': 'user',
@@ -72,15 +74,15 @@ class DioOpenAiRemoteDataSource implements OpenAiRemoteDataSource {
             },
           },
         },
-        'max_output_tokens': 1200,
+        'max_output_tokens': 2400,
       },
     );
 
-    final rawStationUuids = parseStationUuidsFromOpenAiResponse(response.data);
+    final rawStationUuids = _parseStationUuids(response.data);
     final allowedStationUuids =
         candidateStations.map((station) => station.stationUuid).toSet();
 
-    return rawStationUuids
+    final stationUuids = rawStationUuids
         .map((stationUuid) => stationUuid.trim())
         .where(
           (stationUuid) =>
@@ -88,6 +90,30 @@ class DioOpenAiRemoteDataSource implements OpenAiRemoteDataSource {
               allowedStationUuids.contains(stationUuid),
         )
         .toList(growable: false);
+
+    if (stationUuids.isEmpty) {
+      logOpenAiApi(
+        'OpenAI ranking returned no usable station UUIDs. '
+        'rawCount=${rawStationUuids.length} candidateCount=${candidateStations.length}.',
+      );
+      throw const FormatException(
+        'OpenAI returned no usable station UUIDs from the candidate list.',
+      );
+    }
+
+    return stationUuids;
+  }
+
+  List<String> _parseStationUuids(Map<String, dynamic>? responseData) {
+    try {
+      return parseStationUuidsFromOpenAiResponse(responseData);
+    } on FormatException catch (error) {
+      logOpenAiApi(
+        'Unable to parse station ranking: ${error.message}. '
+        '${summarizeOpenAiResponse(responseData)}',
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -122,6 +148,10 @@ class DioOpenAiRemoteDataSource implements OpenAiRemoteDataSource {
 
   Options get _authOptions {
     return Options(headers: {'Authorization': 'Bearer ${_config.apiKey}'});
+  }
+
+  bool get _usesReasoningModel {
+    return _config.model.trim().toLowerCase().startsWith('gpt-5');
   }
 
   List<Map<String, Object?>> _stationPayload(List<Station> stations) {
@@ -167,8 +197,8 @@ List<String> parseStationUuidsFromOpenAiResponse(
   Map<String, dynamic>? responseData,
 ) {
   final payload = _extractStructuredPayload(responseData);
-  final rawStationUuids = payload['stationUuids'];
-  if (rawStationUuids is! List) {
+  final rawStationUuids = _stationUuidValues(payload);
+  if (rawStationUuids == null) {
     throw const FormatException('Missing station UUID ranking.');
   }
 
@@ -184,6 +214,17 @@ Map<String, dynamic> _extractStructuredPayload(
 ) {
   if (responseData == null) {
     throw const FormatException('Missing OpenAI response body.');
+  }
+
+  final responseStatus = responseData['status'];
+  if (responseStatus == 'incomplete') {
+    final incompleteDetails = _asStringKeyedMap(
+      responseData['incomplete_details'],
+    );
+    final reason = incompleteDetails?['reason'];
+    throw FormatException(
+      'OpenAI response was incomplete${reason is String ? ': $reason' : ''}.',
+    );
   }
 
   final directPayload = _tryParsePayload(responseData);
@@ -248,12 +289,19 @@ Map<String, dynamic> _extractStructuredPayload(
 Map<String, dynamic>? _tryParsePayload(Object? value) {
   final valueMap = _asStringKeyedMap(value);
   if (valueMap != null) {
-    if (valueMap.containsKey('stationUuids')) {
+    if (_stationUuidValues(valueMap) != null) {
       return valueMap;
     }
 
-    for (final key in const ['parsed', 'json']) {
+    for (final key in const ['parsed', 'json', 'arguments', 'content']) {
       final nestedPayload = _tryParsePayload(valueMap[key]);
+      if (nestedPayload != null) {
+        return nestedPayload;
+      }
+    }
+
+    for (final entry in valueMap.entries) {
+      final nestedPayload = _tryParsePayload(entry.value);
       if (nestedPayload != null) {
         return nestedPayload;
       }
@@ -266,10 +314,43 @@ Map<String, dynamic>? _tryParsePayload(Object? value) {
 
   final decoded = _tryDecodeJson(value);
   if (decoded is List) {
-    return {'stationUuids': decoded};
+    return {'stations': decoded};
   }
 
   return _asStringKeyedMap(decoded);
+}
+
+List<Object?>? _stationUuidValues(Map<String, dynamic> payload) {
+  for (final key in const [
+    'stationUuids',
+    'stationUUIDs',
+    'station_uuids',
+    'stationUuidsOrdered',
+    'uuids',
+    'ids',
+  ]) {
+    final value = payload[key];
+    if (value is List) {
+      return value;
+    }
+  }
+
+  final stations = payload['stations'];
+  if (stations is List) {
+    return [
+      for (final station in stations)
+        if (station is String)
+          station
+        else if (_asStringKeyedMap(station) case final stationMap?)
+          stationMap['stationUuid'] ??
+              stationMap['stationUUID'] ??
+              stationMap['station_uuid'] ??
+              stationMap['uuid'] ??
+              stationMap['id'],
+    ];
+  }
+
+  return null;
 }
 
 Object? _tryDecodeJson(String text) {
@@ -332,11 +413,53 @@ Map<String, dynamic>? _asStringKeyedMap(Object? value) {
   );
 }
 
+String summarizeOpenAiResponse(Map<String, dynamic>? responseData) {
+  if (responseData == null) {
+    return 'Response body was null.';
+  }
+
+  final status = responseData['status'];
+  final error = responseData['error'];
+  final incompleteDetails = responseData['incomplete_details'];
+  final output = responseData['output'];
+  if (output is! List) {
+    return 'status=$status error=$error incomplete=$incompleteDetails '
+        'outputType=${output.runtimeType}.';
+  }
+
+  final outputSummary = output
+      .map((item) {
+        final itemMap = _asStringKeyedMap(item);
+        if (itemMap == null) {
+          return item.runtimeType.toString();
+        }
+
+        final content = itemMap['content'];
+        final contentSummary =
+            content is List
+                ? content
+                    .map((contentItem) {
+                      final contentMap = _asStringKeyedMap(contentItem);
+                      final type = contentMap?['type'];
+                      final text = contentMap?['text'];
+                      return 'contentType=$type textLength=${text is String ? text.length : 0}';
+                    })
+                    .join('|')
+                : 'contentType=${content.runtimeType}';
+
+        return 'type=${itemMap['type']} status=${itemMap['status']} '
+            '$contentSummary';
+      })
+      .join('; ');
+
+  return 'status=$status error=$error incomplete=$incompleteDetails '
+      'output=[$outputSummary].';
+}
+
 const _stationRankingInstructions = '''
 You are a radio station recommendation engine.
 Use only the candidateStations provided by the app.
-Return stationUuids ordered from best to worst for the user's request.
-Return at most 12 stationUuids; the app will keep the remaining candidates.
+Return 5 to 12 stationUuids ordered from best to worst for the user's request.
 Do not invent station UUIDs, names, streams, genres, countries, or metadata.
 If the request is vague, prefer reliable, popular stations and favorites-adjacent tags.
 ''';

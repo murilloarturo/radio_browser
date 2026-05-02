@@ -6,6 +6,16 @@ RadioBrowser is a Flutter take-home project for browsing and listening to intern
 
 Core browsing, playback, favorites, and the first AI-assisted station discovery flow are in progress phase by phase.
 
+## Design Reference
+
+The first implementation pass was based on this initial wireframe for the discover list, mini player, and full player flow:
+
+![Initial RadioBrowser wireframe](docs/wireframes/initial-wireframe.png)
+
+## Demo Video
+
+A short walkthrough video will be added here later.
+
 ## Requirements
 
 - Flutter stable with Dart 3.7 or newer

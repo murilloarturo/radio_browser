@@ -14,8 +14,10 @@ void main() {
     test('parses nested output content text', () {
       final stationUuids = parseStationUuidsFromOpenAiResponse({
         'output': [
+          {'type': 'reasoning', 'summary': <Object?>[]},
           {
             'type': 'message',
+            'status': 'completed',
             'content': [
               {'type': 'output_text', 'text': '{"stationUuids":["station-3"]}'},
             ],
@@ -62,6 +64,68 @@ void main() {
       });
 
       expect(stationUuids, ['station-7', 'station-8']);
+    });
+
+    test('parses alternate station UUID keys', () {
+      final stationUuids = parseStationUuidsFromOpenAiResponse({
+        'output': [
+          {
+            'content': [
+              {'text': '{"station_uuids":["station-9","station-10"]}'},
+            ],
+          },
+        ],
+      });
+
+      expect(stationUuids, ['station-9', 'station-10']);
+    });
+
+    test('parses station object arrays', () {
+      final stationUuids = parseStationUuidsFromOpenAiResponse({
+        'output_text':
+            '{"stations":[{"stationUuid":"station-11"},{"id":"station-12"}]}',
+      });
+
+      expect(stationUuids, ['station-11', 'station-12']);
+    });
+
+    test('reports incomplete responses clearly', () {
+      expect(
+        () => parseStationUuidsFromOpenAiResponse({
+          'status': 'incomplete',
+          'incomplete_details': {'reason': 'max_output_tokens'},
+          'output': [
+            {'type': 'reasoning', 'summary': <Object?>[]},
+          ],
+        }),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('max_output_tokens'),
+          ),
+        ),
+      );
+    });
+
+    test('summarizes response shape without full payload text', () {
+      final summary = summarizeOpenAiResponse({
+        'status': 'completed',
+        'output': [
+          {
+            'type': 'message',
+            'status': 'completed',
+            'content': [
+              {'type': 'output_text', 'text': '{"unexpected":true}'},
+            ],
+          },
+        ],
+      });
+
+      expect(summary, contains('status=completed'));
+      expect(summary, contains('type=message'));
+      expect(summary, contains('textLength=19'));
+      expect(summary, isNot(contains('unexpected')));
     });
   });
 }

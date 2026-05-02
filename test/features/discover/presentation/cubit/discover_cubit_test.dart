@@ -350,6 +350,85 @@ void main() {
   );
 
   blocTest<DiscoverCubit, DiscoverState>(
+    'waits for stored favorites before calculating initial recommendations',
+    setUp: () {
+      final taggedStation = stationFixture(
+        stationUuid: 'tagged-jazz',
+        name: 'Tagged Jazz',
+        tags: const <String>['jazz'],
+      );
+      favoritesController = StreamController<Result<List<FavoriteStation>>>();
+      addTearDown(favoritesController.close);
+      when(
+        () => watchFavoriteStations(),
+      ).thenAnswer((_) => favoritesController.stream);
+      when(() => rankStationsWithAi.isEnabled).thenReturn(true);
+      when(() => searchStations(any())).thenAnswer((invocation) async {
+        final query =
+            invocation.positionalArguments.single as StationSearchQuery;
+        if (query.tag == 'jazz') {
+          return Success<List<Station>>([taggedStation]);
+        }
+
+        return Success<List<Station>>([station]);
+      });
+      when(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      ).thenAnswer((_) async => Success<List<Station>>([taggedStation]));
+    },
+    build: buildCubit,
+    act: (cubit) async {
+      await cubit.load();
+      await pumpEventQueue();
+
+      verifyNever(
+        () => rankStationsWithAi(
+          prompt: any(named: 'prompt'),
+          candidateStations: any(named: 'candidateStations'),
+          favoriteStations: any(named: 'favoriteStations'),
+        ),
+      );
+
+      favoritesController.add(
+        Success<List<FavoriteStation>>([
+          favoriteStationFixture(
+            stationUuid: 'favorite-only',
+            name: 'Favorite Jazz',
+          ),
+        ]),
+      );
+      await pumpEventQueue();
+    },
+    verify: (cubit) {
+      final captured =
+          verify(
+            () => rankStationsWithAi(
+              prompt: captureAny(named: 'prompt'),
+              candidateStations: captureAny(named: 'candidateStations'),
+              favoriteStations: captureAny(named: 'favoriteStations'),
+            ),
+          ).captured;
+      final prompt = captured[0] as String;
+      final candidateStations = captured[1] as List<Station>;
+      final favoriteStations = captured[2] as List<FavoriteStation>;
+
+      expect(prompt, contains('similar to my favorites'));
+      expect(
+        candidateStations.map((station) => station.stationUuid),
+        containsAll(<String>['favorite-only', 'tagged-jazz']),
+      );
+      expect(favoriteStations.map((station) => station.stationUuid), [
+        'favorite-only',
+      ]);
+      expect(cubit.state.recommendedStations.first.stationUuid, 'tagged-jazz');
+    },
+  );
+
+  blocTest<DiscoverCubit, DiscoverState>(
     'calculates recommendations only on the first successful app load',
     setUp: () {
       favoritesController = StreamController<Result<List<FavoriteStation>>>();
