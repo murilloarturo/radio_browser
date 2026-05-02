@@ -79,6 +79,18 @@ flutter run --profile -d <iphone-device-id> --dart-define-from-file=.dart_define
 
 Profile mode does not support hot reload, but it uses the same ahead-of-time compilation style as release builds and is useful for tester validation on real iPhones.
 
+### Android Text Or Icon Rendering Issues
+
+On some Android devices or emulators, Flutter text and Material icon glyphs can appear visually scrambled while the layout itself is still correct. This is usually a renderer/GPU driver issue with the local Flutter/Android graphics stack, not broken API data or localization strings.
+
+To confirm the diagnosis, run with software rendering:
+
+```sh
+flutter run --enable-software-rendering -d <android-device-id> --dart-define-from-file=.dart_defines/openai.local.json
+```
+
+If the text renders normally with software rendering, update Flutter stable and rebuild the app. Software rendering is useful for debugging, but it is not the preferred long-term runtime mode.
+
 ## OpenAI Setup
 
 For this interview project, OpenAI can be called directly from the Flutter app so the project works without a backend. This is acceptable for local/demo use, but not ideal for a real production app because mobile binaries can be inspected. The production-grade version would move OpenAI calls behind a backend proxy and keep `OPENAI_API_KEY` only on the server.
